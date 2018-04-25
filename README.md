@@ -14,6 +14,10 @@ Final two visualizations for CS 5720 (Scientific Computing with Visualization).
 * [PyTorch CNN Visualizations](https://github.com/utkuozbulak/pytorch-cnn-visualizations)
 * [Intel AI Academy: Visualising CNN Models Using PyTorch](https://software.intel.com/en-us/articles/visualising-cnn-models-using-pytorch)
 
+### Implementation Resources:
+* [PyTorch and Function Hooks](http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks)
+* [PyTorch and Function Hooks (2)]([https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/23)
+
 ### Run Configurations:
 * `../data/ImageNet/Subsets/`
 
