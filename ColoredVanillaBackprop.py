@@ -60,15 +60,6 @@ has_test_set = False
 best_prec1 = None
 
 
-'''
-Class for visualization:
-'''
-class ColoredVanillaBackprop(nn.Module):
-    """
-    ColoredVanillaBackprop: Implements colored gradients for the
-    """
-
-
 def get_data_transforms(input_load_size=(256, 256), receptive_field_size=(224, 224)):
     """
     get_data_transforms: Gets the data transformation pipeline for each of the three input datasets.
@@ -144,7 +135,7 @@ def get_data_loaders(data_transforms, image_loaders):
     return data_loaders
 
 
-def train(model, train_loader):
+def train(net, train_loader):
     return NotImplementedError
 
 
@@ -195,7 +186,8 @@ def main():
 
     print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
     # Train the network:
-    model = train(model, train_loader=data_loaders['train'])
+    train(net=model, train_loader=data_loaders['train'])
+
 
 
 if __name__ == '__main__':
