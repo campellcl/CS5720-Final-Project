@@ -4,11 +4,13 @@ ColoredVanillaBackprop.py
 """
 import argparse
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torchvision import datasets, models, transforms
+from torchvision import datasets, models, transforms, utils
+import matplotlib.pyplot as plt
 
 '''
 Command Line Argument Parsing:
@@ -137,6 +139,32 @@ def get_data_loaders(data_transforms, image_loaders):
 
 def train(net, train_loader):
     return NotImplementedError
+
+
+def imshow_tensor(images, title=None):
+    """
+    imshow_tensor: Displays a tensor as a grid of images. The MatPlotLib imshow function for PyTorch Tensor Objects.
+    :source url: http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+    :param images: Tensor images to be visualized.
+    :param title: A list of titles each one corresponding to an image in images.
+    :return:
+    """
+    # See: http://pytorch.org/docs/master/torchvision/utils.html#torchvision.utils.make_grid
+    torchvision_grid = utils.make_grid(images)
+    # TODO: not sure what the point of this transposition is:
+    input = torchvision_grid.numpy().transpose((1, 2, 0))
+    # Normalize the input Tensor by each input channel (R, G, B)'s mean and standard deviation:
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    input = std * input + mean
+    # Restrict to [0, 1] interval:
+    input = np.clip(input, a_min=0, a_max=1)
+    fig = plt.figure()
+    has_title = title is not None
+    plt.imshow(input)
+    if title is not None:
+        plt.title(title)
+    plt.show()
 
 
 def main():
