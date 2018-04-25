@@ -116,20 +116,21 @@ class VanillaBackprop(nn.Module):
         # Get the first layer of the network:
         network_layers_odict_keys = list(self.model._modules.keys())
         first_layer = self.model._modules.get(network_layers_odict_keys[0])
-        gradient_hook = first_layer.register_forward_hook(
-            lambda layer, i, o:
-                print(
-                    'layer/module:', type(layer),
-                    '\ni:', type(i),
-                        '\n   len:', len(i),
-                        '\n   type:', type(i[0]),
-                        '\n   data size:', i[0].data.size(),
-                        '\n   data type:', i[0].data.type(),
-                    '\no:', type(o),
-                        '\n   data size:', o.data.size(),
-                        '\n   data type:', o.data.type(),
-                )
-        )
+        gradient_hook = first_layer.register_forward_hook(self.layer_one_hook)
+        # gradient_hook = first_layer.register_forward_hook(
+        #     lambda layer, i, o:
+        #         print(
+        #             'layer/module:', type(layer),
+        #             '\ni:', type(i),
+        #                 '\n   len:', len(i),
+        #                 '\n   type:', type(i[0]),
+        #                 '\n   data size:', i[0].data.size(),
+        #                 '\n   data type:', i[0].data.type(),
+        #             '\no:', type(o),
+        #                 '\n   data size:', o.data.size(),
+        #                 '\n   data type:', o.data.type(),
+        #         )
+        # )
 
     def forward(self, *input):
         # Delegate to the super function of the provided pre-trained model parameter during instantiation:
@@ -138,6 +139,22 @@ class VanillaBackprop(nn.Module):
         # return super(type(nn.Module), self.model).forward(*input)
         # return super(VanillaBackprop, self).forward(*input)
 
+    def layer_one_hook(self, layer, input, result):
+        """
+        conv2d_hook: A function hooked into the first layer (Conv2d) of the pre-trained self.model. This function is
+            called when forward propagation is called on the fist layer. For additional information see the README.
+        :param input: A tuple of packed inputs representing input to the first layer of the network.
+        :param result: A Tensor, result.data contains the representation of this layer's output after a forward pass.
+        :source url: http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks
+        :return:
+        """
+        print('Inside ' + self.__class__.__name__ + ' forward')
+        print('input: ', type(input))
+        print('input[0]: ', type(input[0]))
+        print('output: ', type(result))
+        print('')
+        print('input size:', input[0].size())
+        print('output size:', result.data.size())
 
 def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field_size=224):
     """
