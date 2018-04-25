@@ -90,35 +90,96 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def get_data_transforms(input_load_size=256, receptive_field_size=224):
+class VanillaBackprop(nn.Module):
+    """
+    VanillaBackprop: Performs standard backpropagation using the pre-trained model provided during instantiation.
+    """
+    def __init__(self, model):
+        super(VanillaBackprop, self).__init__()
+        print('[VanillaBackprop <wrapper>] Target architecture %s layers/modules (hook-able): %s' % (args.arch, model._modules.keys()))
+        # This is a reference to the pre-trained source model (i.e. Resnet18):
+        self.model = model
+        # This is where we will store the gradients of the network for visualization purposes:
+        self.gradients = None
+        # Freeze the network gradients in every layer:
+        for param in model.parameters():
+            param.requires_grad = False
+        # Put the model in evaluation mode:
+        self.model.eval()
+        # Hook the first layer to get the gradient:
+        # See: http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks
+        # See: https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/23?u=campellcl
+        '''
+        "If you care about grad or outputs of some module, use module hooks, if you care about the grad w.r.t. some 
+            Variable attach a hook to a Variable (there already is a register_hook function)".
+        '''
+        # Get the first layer of the network:
+        network_layers_odict_keys = list(self.model._modules.keys())
+        first_layer = self.model._modules.get(network_layers_odict_keys[0])
+        gradient_hook = first_layer.register_forward_hook(
+            lambda layer, i, o:
+                print(
+                    'layer/module:', type(layer),
+                    '\ni:', type(i),
+                        '\n   len:', len(i),
+                        '\n   type:', type(i[0]),
+                        '\n   data size:', i[0].data.size(),
+                        '\n   data type:', i[0].data.type(),
+                    '\no:', type(o),
+                        '\n   data size:', o.data.size(),
+                        '\n   data type:', o.data.type(),
+                )
+        )
+
+    def forward(self, *input):
+        # Delegate to the super function of the provided pre-trained model parameter during instantiation:
+        return self.model.forward(*input)
+        # return super(nn.Module, self.model).forward(*input)
+        # return super(type(nn.Module), self.model).forward(*input)
+        # return super(VanillaBackprop, self).forward(*input)
+
+
+def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field_size=224):
     """
     get_data_transforms: Gets the data transformation pipeline for each of the three input datasets.
+    :param dataset_is_present: A dictionary of boolean flags (one for each dataset) indicating if the source directory
+        is present on the OS. Flags for: train, val, test, viz.
     :param input_load_size: The dimensions (x, y) for which the input image is to be re-sized to.
     :param receptive_field_size: The dimensions (x, y) for which the input image is to cropped to (either a center or
         randomized crop depending on the defined pipeline).
     :return data_transforms: A dictionary housing sequential function calls that perform transformations to images in
         each of the datasets: train, val, and test.
     """
-    data_transforms = {
-        'train': transforms.Compose([
-            transforms.RandomResizedCrop(receptive_field_size),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ]),
-        'val': transforms.Compose([
-            transforms.Resize(input_load_size),
-            transforms.CenterCrop(receptive_field_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ]),
-        'test': transforms.Compose([
-            transforms.Resize(input_load_size),
-            transforms.CenterCrop(receptive_field_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-    }
+    data_transforms = {}
+    for dataset_name, is_present in dataset_is_present.items():
+        if dataset_name == 'train' and is_present:
+            data_transforms[dataset_name] = transforms.Compose([
+                transforms.RandomResizedCrop(receptive_field_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        elif dataset_name == 'val' and is_present:
+            data_transforms[dataset_name] = transforms.Compose([
+                transforms.Resize(input_load_size),
+                transforms.CenterCrop(receptive_field_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        elif dataset_name == 'test' and is_present:
+                data_transforms[dataset_name] = transforms.Compose([
+                transforms.Resize(input_load_size),
+                transforms.CenterCrop(receptive_field_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        elif dataset_name == 'viz' and is_present:
+            data_transforms[dataset_name] = transforms.Compose([
+                transforms.Resize(input_load_size),
+                transforms.CenterCrop(receptive_field_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
     return data_transforms
 
 
@@ -130,38 +191,54 @@ def get_image_loaders(data_transforms):
         each of the datasets: train, val, and test.
     :return image_loaders: A dictionary containing references to the image loaders for each dataset.
     """
-    # Training set image loader:
-    trainset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'train'), data_transforms['train'])
-    # Validation set image loader:
-    valset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'val'), data_transforms['val'])
-    image_loaders = {
-        'train': trainset_imgloader,
-        'val': valset_imgloader,
-    }
-    # Testing set image loader:
-    if has_test_set:
-        testset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'test'), data_transforms['test'])
-        image_loaders['test'] = testset_imgloader
+    image_loaders = {}
+    for dataset_name, transformation_pipeline in data_transforms.items():
+        if dataset_name is not None:
+            if dataset_name == 'train':
+                # Training set image loader:
+                trainset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'train'), data_transforms['train'])
+                image_loaders[dataset_name] = trainset_imgloader
+            elif dataset_name == 'val':
+                # Validation set image loader:
+                valset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'val'), data_transforms['val'])
+                image_loaders[dataset_name] = valset_imgloader
+            elif dataset_name == 'test':
+                # Testing set image loader:
+                testset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'test'), data_transforms['test'])
+                image_loaders[dataset_name] = testset_imgloader
+            elif dataset_name == 'viz':
+                # Visualization set image loader:
+                vizset_imgloader = datasets.ImageFolder(os.path.join(args.data, 'viz'), data_transforms['viz'])
+                image_loaders['viz'] = vizset_imgloader
     return image_loaders
 
 
-def get_data_loaders(data_transforms, image_loaders):
+def get_data_loaders(image_loaders):
     """
     get_data_loaders: Returns a dict of data loader references, one for each dataset: train, val, test. The instances
         of torch.utils.data.DataLoader handles asynchronous loading of mini-batches.
-    :param data_transforms: A dictionary housing sequential function calls that perform transformations to images in
-        each of the datasets: train, val, and test.
     :param image_loaders: A dictionary containing references to the image loaders for each dataset.
     :return data_loaders: A dictionary of data loader instance references, one for each dataset: train, val, and test.
     """
     data_loaders = {}
-    data_loaders['train'] = torch.utils.data.DataLoader(image_loaders['train'], batch_size=args.batch_size,
-                                                        shuffle=args.shuffle, num_workers=args.workers)
-    data_loaders['val'] = torch.utils.data.DataLoader(image_loaders['val'], batch_size=args.batch_size,
-                                                      shuffle=args.shuffle, num_workers=args.workers)
-    if has_test_set:
-        data_loaders['test'] = torch.utils.data.DataLoader(image_loaders['test'], batch_size=args.batch_size,
-                                                           shuffle=args.shuffle, num_workers=args.workers)
+    for dataset_name, image_loader in image_loaders.items():
+        if dataset_name is not None:
+            if dataset_name == 'train':
+                data_loaders[dataset_name] = \
+                    torch.utils.data.DataLoader(image_loaders['train'], batch_size=args.batch_size,
+                                                shuffle=args.shuffle, num_workers=args.workers)
+            elif dataset_name == 'val':
+                data_loaders[dataset_name] = \
+                    torch.utils.data.DataLoader(image_loaders['val'], batch_size=args.batch_size,
+                                                shuffle=args.shuffle, num_workers=args.workers)
+            elif dataset_name == 'test':
+                data_loaders[dataset_name] = \
+                    torch.utils.data.DataLoader(image_loaders['test'], batch_size=args.batch_size,
+                                                shuffle=args.shuffle, num_workers=args.workers)
+            elif dataset_name == 'viz':
+                data_loaders[dataset_name] = \
+                    torch.utils.data.DataLoader(image_loaders['viz'], batch_size=args.batch_size,
+                                                shuffle = args.shuffle, num_workers=args.workers)
     return data_loaders
 
 
@@ -179,7 +256,7 @@ def save_checkpoint(state, is_best, filename='../PTCheckpoints/checkpoint.pth.ta
         shutil.copyfile(filename, 'model_best.pth.tar')
 
 
-def train(net, train_loader, criterion=nn.CrossEntropyLoss, optimizer=optim.SGD):
+def train(net, train_loader, criterion=nn.CrossEntropyLoss, optimizer=torch.optim.SGD):
     """
     train: Trains a PyTorch neural network (nn.Module subclass) via the provided optimizer (torch.optim), assessed using
         the provided criterion, over num_epoch iterations.
@@ -294,14 +371,43 @@ def imshow_tensor(images, title=None):
 
 
 def main():
+    dataset_is_present = {}
+    has_train_set = os.path.isdir(os.path.join(args.data, 'train'))
+    has_val_set = os.path.isdir(os.path.join(args.data, 'val'))
     # Does the data directory contain a test set or just a validation set?
     has_test_set = os.path.isdir(os.path.join(args.data, 'test'))
-    data_transforms = get_data_transforms()
+    has_viz_set = os.path.isdir(os.path.join(args.data, 'viz'))
+    dataset_is_present['train'] = has_train_set
+    dataset_is_present['val'] = has_val_set
+    dataset_is_present['test'] = has_test_set
+    dataset_is_present['viz'] = has_viz_set
+    del has_train_set, has_val_set, has_test_set, has_viz_set
+    # Load pipelines for data transformation:
+    data_transforms = get_data_transforms(dataset_is_present)
+    # Load pipelines for image dataset loaders:
     image_loaders = get_image_loaders(data_transforms)
     dataset_sizes = {x: len(image_loaders[x]) for x in list(image_loaders.keys())}
-    class_names = class_names = image_loaders['train'].classes
+    if dataset_is_present['train']:
+        class_names = image_loaders['train'].classes
+    elif dataset_is_present['viz']:
+        class_names = image_loaders['viz'].classes
+
     # Data Loaders:
-    data_loaders = get_data_loaders(data_transforms, image_loaders)
+    data_loaders = get_data_loaders(image_loaders)
+
+    # Define loss function (criterion) to evaluate how far off the network is in its predictions:
+    if use_gpu:
+        # criterion = nn.CrossEntropyLoss().cuda()
+        criterion = nn.CrossEntropyLoss().cuda
+    else:
+        # criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss
+
+    # Define the optimizer:
+    # TODO: Does a pretrained module have a optimizer already associated? If so, it's being overwritten here:
+    # optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    optimizer = torch.optim.SGD
+
     # Create the model:
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
@@ -313,17 +419,9 @@ def main():
         model = models.__dict__[args.arch]()
         print("=> training '{}' from scratch".format(args.arch))
         print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
+
         # Train the network:
-        train(net=model, train_loader=data_loaders['train'])
-
-    # Define loss function (criterion) to evaluate how far off the network is in its predictions:
-    if use_gpu:
-        criterion = nn.CrossEntropyLoss().cuda()
-    else:
-        criterion = nn.CrossEntropyLoss()
-
-    # Define the optimizer:
-    optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+        model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
 
     # Resume from checkpoint if flag is present:
     if args.resume:
@@ -340,6 +438,26 @@ def main():
 
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
+
+    '''
+    Visualize:
+    '''
+    # Apply a wrapper to the model to register function hooks for visualization:
+    VBP = VanillaBackprop(model)
+    # Retrieve all visualization data:
+    for i, data in enumerate(data_loaders['viz']):
+        images, labels = data
+        # Wrap input in autograd Variable:
+        if use_gpu:
+            images, labels = Variable(images.cuda()), Variable(labels.cuda())
+        else:
+            images, labels = Variable(images), Variable(labels)
+        # Zero the parameter gradients:
+        # optimizer.zero_grad()
+        # Compute forward pass/generate gradients:
+        outputs = VBP(images)
+        # Get weights and predictions:
+        weights, preds = torch.max(outputs.data, 1)
 
 
 if __name__ == '__main__':
