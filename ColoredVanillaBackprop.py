@@ -90,7 +90,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def get_data_transforms(input_load_size=(256, 256), receptive_field_size=(224, 224)):
+def get_data_transforms(input_load_size=256, receptive_field_size=224):
     """
     get_data_transforms: Gets the data transformation pipeline for each of the three input datasets.
     :param input_load_size: The dimensions (x, y) for which the input image is to be re-sized to.
@@ -312,6 +312,9 @@ def main():
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
         print("=> training '{}' from scratch".format(args.arch))
+        print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
+        # Train the network:
+        train(net=model, train_loader=data_loaders['train'])
 
     # Define loss function (criterion) to evaluate how far off the network is in its predictions:
     if use_gpu:
@@ -320,7 +323,7 @@ def main():
         criterion = nn.CrossEntropyLoss()
 
     # Define the optimizer:
-    optimizer = torch.optim.SGD(model, args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # Resume from checkpoint if flag is present:
     if args.resume:
@@ -337,11 +340,6 @@ def main():
 
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
-
-    print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
-    # Train the network:
-    train(net=model, train_loader=data_loaders['train'])
-
 
 
 if __name__ == '__main__':
