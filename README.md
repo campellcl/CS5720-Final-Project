@@ -7,6 +7,17 @@ Final two visualizations for CS 5720 (Scientific Computing with Visualization).
 ## Visualization One:
 
 ## Visualization Two:
+### Learning Resources:
+* [Visualizing what ConvNets Learn](http://cs231n.github.io/understanding-cnn/)
+* [Feature Visualization](https://distill.pub/2017/feature-visualization/)
+* [Understanding Neural Networks Through Deep Visualization](http://yosinski.com/deepvis)
+* [PyTorch CNN Visualizations](https://github.com/utkuozbulak/pytorch-cnn-visualizations)
+* [Intel AI Academy: Visualising CNN Models Using PyTorch](https://software.intel.com/en-us/articles/visualising-cnn-models-using-pytorch)
+
+### Run Configurations:
+* `../data/ImageNet/Subsets/`
+
+
 ### Dataset:
 * [Attributes (French)](https://www.data.gouv.fr/s/resources/base-de-donnees-accidents-corporels-de-la-circulation/20170915-155209/Description_des_bases_de_donnees_ONISR_-Annees_2005_a_2016.pdf)
 ### Dataset Attributes (English):
