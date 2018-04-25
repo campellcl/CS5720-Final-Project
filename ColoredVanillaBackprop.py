@@ -4,10 +4,14 @@ ColoredVanillaBackprop.py
 """
 import argparse
 import os
+import time
+import copy
 import numpy as np
+import shutil
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.autograd import Variable
 import torch.nn.functional as F
 from torchvision import datasets, models, transforms, utils
 import matplotlib.pyplot as plt
@@ -41,7 +45,10 @@ parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
-
+parser.add_argument('--epochs', default=90, type=int, metavar='N',
+                    help='number of total epochs to run')
+parser.add_argument('--print_freq', '-p', default=10, type=int,
+                    metavar='N', help='print frequency (default: 10)')
 # trans_learn (int, optional): Transfer learning enabled? Set to True to have only the last n fully connected layers
 #   frozen. (default: False)
 # parser.add_argument('--trans_learn', '-tn', metavar='TRANS_LEARN', type=str, help='number of fully connected layers to re-train')
@@ -60,6 +67,27 @@ use_gpu = torch.cuda.is_available()
 # Flag indicating if test set is present (if not present, usually only a validation dataset was provided):
 has_test_set = False
 best_prec1 = None
+dataset_sizes = None
+
+class AverageMeter(object):
+    """
+    AverageMeter: Computes and stores the average and current value during each epoch.
+    source: https://github.com/pytorch/examples/blob/master/imagenet/main.py
+    """
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
 
 def get_data_transforms(input_load_size=(256, 256), receptive_field_size=(224, 224)):
@@ -137,8 +165,106 @@ def get_data_loaders(data_transforms, image_loaders):
     return data_loaders
 
 
-def train(net, train_loader):
-    return NotImplementedError
+def save_checkpoint(state, is_best, filename='../PTCheckpoints/checkpoint.pth.tar'):
+    """
+    save_checkpoint: Saves the model's weights when called. If the is_best flag is set checkpoint will be saved as:
+        model_best.pth.tar. If the flag is not set, checkpoint will be saved as 'checkpoint.pth.tar'.
+    :param state: The information comprising the checkpoint.
+    :param is_best: A boolean flag indicating if this is the best performing weights on the validation dataset.
+    :param filename: The location and name of the checkpoint file to be written to disk.
+    :return None: Upon completion, a checkpoint comprised of 'state' is saved to 'filename'.
+    """
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, 'model_best.pth.tar')
+
+
+def train(net, train_loader, criterion=nn.CrossEntropyLoss, optimizer=optim.SGD):
+    """
+    train: Trains a PyTorch neural network (nn.Module subclass) via the provided optimizer (torch.optim), assessed using
+        the provided criterion, over num_epoch iterations.
+    :param net: A nn.Module instance representing the neural network.
+    :param train_loader: A nn.DataLoader instance which performs asynchronous loading from the training dataset.
+    :param criterion: A loss function computing how far away the network's output is from the target.
+    :param optimizer: An optimization function (such as Stochastic Gradient Descent) which performs updates to the
+        network's weights based on the output of the criterion function.
+    :return net: The provided network is returned after training with the best model weights found during validation.
+    """
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    since = time.time()
+    best_model_wts = copy.deepcopy(net.state_dict())
+    best_acc = 0.0
+    losses = []
+    accuracies = []
+    # Declare the loss (cost) function:
+    criterion = criterion()
+    # Declare the optimization function:
+    optimizer = optimizer(net.parameters(), lr=args.lr, momentum=args.momentum)
+    # Iterate over the dataset num_epoch times:
+    for epoch in range(args.epochs):
+        # Each epoch has a training and validation phase:
+        for phase in ['train', 'val']:
+            running_loss = 0.0
+            running_corrects = 0
+            print('Epoch {}/{}'.format(epoch, args.epochs - 1))
+            print('-' * 10)
+            for i, data in enumerate(train_loader):
+                # get the inputs:
+                images, labels = data
+                # wrap inputs in an autograd.Variable:
+                if use_gpu:
+                    images, labels = Variable(images.cuda()), Variable(labels.cuda())
+                else:
+                    images, labels = Variable(images), Variable(labels)
+                # Zero the parameter gradients:
+                optimizer.zero_grad()
+                # Compute forward pass:
+                outputs = net(images)
+                # Get weights and predictions:
+                weights, preds = torch.max(outputs.data, 1)
+                # Compute the loss:
+                loss = criterion(outputs, labels)
+                # Backpropagate:
+                loss.backward()
+                # Update the network's weights with the update/learning rule:
+                optimizer.step()
+                # Print statistics every print_freq epochs:
+                if i % args.print_freq == 0:
+                    print('<epoch, batch>:\t\t[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / args.batch_size))
+                    running_loss += loss.data[0] * images.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
+            epoch_loss = running_loss / dataset_sizes[phase]
+            losses.append(epoch_loss)
+            epoch_acc = running_corrects / dataset_sizes[phase]
+            accuracies.append(epoch_acc)
+            print('[{}]:\t Epoch Loss: {:.4f} Epoch Acc: {:.4f}'.format(
+                    phase, epoch_loss, epoch_acc))
+
+            # Deep copy the model's weights if this epoch was the best peforming on the val set:
+            if phase == 'val' and epoch_acc > best_acc:
+                best_acc = epoch_acc
+                best_model_wts = copy.deepcopy(net.state_dict())
+                print('Checkpoint: Epoch %d has the best validation accuracy. The model weights have been saved.' % epoch)
+                # Create checkpoint:
+                save_checkpoint({
+                    'epoch': epoch + 1,
+                    'arch' : args.arch,
+                    'state_dict': copy.deepcopy(net.state_dict()),
+                    'best_prec_1': best_acc,
+                    'optimizer': optimizer.state_dict()
+                }, is_best=True, filename='../data/PTCheckpoints/model_best.pth.tar')
+            print('Accuracy (Top-1 Error or Precision at 1) of the network on %d %s images: %.2f%%'
+                  % (dataset_sizes[phase], phase, epoch_acc * 100))
+            print()
+    time_elapsed = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+    print('Best val Acc: {:4f}'.format(best_acc))
+
+    # Load best model weights:
+    net.load_state_dict(best_model_wts)
+    return net
 
 
 def imshow_tensor(images, title=None):
