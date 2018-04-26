@@ -406,6 +406,15 @@ def imshow_tensor(images, title=None):
     plt.show()
 
 
+def save_gradient_images(gradients, file_name):
+    """
+    save_gradient_images: Exports the gradients as an image
+    :param gradients:
+    :param file_name:
+    :return:
+    """
+
+
 def main():
     dataset_is_present = {}
     has_train_set = os.path.isdir(os.path.join(args.data, 'train'))
@@ -487,20 +496,46 @@ def main():
         # optimizer.zero_grad()
         # Try without a wrapper:
         outputs = model(images)
+        outputs_shape = outputs.shape
+        # See: https://stackoverflow.com/questions/43451125/pytorch-what-are-the-gradient-arguments/47026836#47026836
+        grad_container = torch.ones(outputs_shape[0], outputs_shape[1])
+        grads = outputs.cpu().backward(grad_container)
+        save_gradient_images(grads)
+        '''
+        Additional resources for gradient extraction:
+        See: http://pytorch.org/tutorials/beginner/former_torchies/autograd_tutorial.html
+        http://pytorch.org/docs/0.1.12/autograd.html#torch.autograd.backward
+        https://discuss.pytorch.org/t/how-to-use-torch-autograd-backward-when-variables-are-non-scalar/4191
+        https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/23
+        https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/33?u=campellcl
+        http://www.cs.virginia.edu/~vicente/vislang/notebooks/pytorch-lab.html
+        https://discuss.pytorch.org/t/understanding-how-torch-nn-module-works/122/2
+        https://discuss.pytorch.org/t/clarification-using-backward-on-non-scalars/1059/5
+        https://github.com/utkuozbulak/pytorch-cnn-visualizations/blob/master/src/vanilla_backprop.py
+        https://discuss.pytorch.org/t/how-the-hook-works/2222
+        '''
+
+        # outputs.backward(torch.ones())
+        output_one = outputs[0].view(1, -1)
         print(type(outputs))
         # if use_gpu:
         #     outputs = Variable(outputs, requires_grad=True)
         final_layer_weights, preds = torch.max(outputs.data, 1)
-        # See: http://pytorch.org/tutorials/beginner/former_torchies/autograd_tutorial.html
-        # See: http://pytorch.org/docs/0.1.12/autograd.html#torch.autograd.backward
+
         # Container to hold gradients:
-        grads = torch.zeros(outputs.shape)
+        grad_container = torch.randn(outputs.shape)
+        grad_container = grad_container.cuda()
         # grads = outputs.backward(grads)
-        grads = torch.autograd.backward(outputs.data, grads, False)
+        loss = criterion((outputs, labels))
+        grad = torch.autograd.backward(outputs.data, grad_variables=loss)
         # grads = torch.autograd.backward(outputs, grads, False)
         # grads = Variable(torch.LongTensor(torch.zeros_like(images)), requires_grad=True)
         # grads = torch.autograd.backward(outputs)
         # grads = outputs.backward()
+        x = Variable(torch.randn(2, 100), requires_grad=True)
+        y = x ** 2
+        grad = torch.randn(x.shape)
+        grads = torch.autograd.backward([y], [grad])
 
 
         # Compute forward pass:
@@ -508,7 +543,7 @@ def main():
         # Compute backpropagation to get the gradients for visualization purposes:
         # grads = torch.autograd.backward(outputs)
         # loss = criterion(outputs, targets)
-        loss = criterion(outputs, labels)
+
         # loss.backward()
         print(list(VBP.parameters()))
         parameters = list(model.parameters())
