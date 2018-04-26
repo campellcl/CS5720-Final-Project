@@ -496,7 +496,8 @@ def main():
         # Container to hold gradients:
         grads = torch.zeros(outputs.shape)
         # grads = outputs.backward(grads)
-        grads = torch.autograd.backward(outputs.data, grads)
+        grads = torch.autograd.backward(outputs.data, grads, False)
+        # grads = torch.autograd.backward(outputs, grads, False)
         # grads = Variable(torch.LongTensor(torch.zeros_like(images)), requires_grad=True)
         # grads = torch.autograd.backward(outputs)
         # grads = outputs.backward()
