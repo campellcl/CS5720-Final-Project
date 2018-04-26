@@ -64,6 +64,10 @@ Global Variables:
 '''
 # Flag indicating if GPU should be used for training:
 use_gpu = torch.cuda.is_available()
+# if use_gpu:
+#     default_tensor_type = 'torch.cuda.FloatTensor'
+#     print('=> CUDA enabled. Default tensor type set to %s' % default_tensor_type)
+#     torch.set_default_tensor_type(default_tensor_type)
 # Flag indicating if test set is present (if not present, usually only a validation dataset was provided):
 has_test_set = False
 best_prec1 = None
@@ -101,9 +105,10 @@ class VanillaBackprop(nn.Module):
         self.model = model
         # This is where we will store the gradients of the network for visualization purposes:
         self.gradients = None
+        # We do want to require_grad for every param in the network (enabled by default) for visualization purposes.
         # Freeze the network gradients in every layer:
         for param in model.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         # Put the model in evaluation mode:
         self.model.eval()
         # Hook the first layer to get the gradient:
@@ -116,7 +121,8 @@ class VanillaBackprop(nn.Module):
         # Get the first layer of the network:
         network_layers_odict_keys = list(self.model._modules.keys())
         first_layer = self.model._modules.get(network_layers_odict_keys[0])
-        gradient_hook = first_layer.register_forward_hook(self.layer_one_hook)
+        # gradient_hook = first_layer.register_forward_hook(self.layer_one_hook)
+        gradient_hook = first_layer.register_backward_hook(self.module_hook)
         # gradient_hook = first_layer.register_forward_hook(
         #     lambda layer, i, o:
         #         print(
@@ -155,6 +161,15 @@ class VanillaBackprop(nn.Module):
         print('')
         print('input size:', input[0].size())
         print('output size:', result.data.size())
+
+    def module_hook(self, module, grad_input, grad_out):
+        print('module hook')
+        print('grad_out', grad_out)
+
+    def variable_hook(self, grad):
+        print('variable hook')
+        print('grad', grad)
+        return grad*.1
 
 def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field_size=224):
     """
@@ -292,7 +307,11 @@ def train(net, train_loader, criterion=nn.CrossEntropyLoss, optimizer=torch.opti
     losses = []
     accuracies = []
     # Declare the loss (cost) function:
-    criterion = criterion()
+    if use_gpu:
+        # criterion = nn.CrossEntropyLoss().cuda()
+        criterion = criterion().cuda()
+    else:
+        criterion = criterion()
     # Declare the optimization function:
     optimizer = optimizer(net.parameters(), lr=args.lr, momentum=args.momentum)
     # Iterate over the dataset num_epoch times:
@@ -413,12 +432,7 @@ def main():
     data_loaders = get_data_loaders(image_loaders)
 
     # Define loss function (criterion) to evaluate how far off the network is in its predictions:
-    if use_gpu:
-        # criterion = nn.CrossEntropyLoss().cuda()
-        criterion = nn.CrossEntropyLoss().cuda
-    else:
-        # criterion = nn.CrossEntropyLoss()
-        criterion = nn.CrossEntropyLoss
+    criterion = nn.CrossEntropyLoss
 
     # Define the optimizer:
     # TODO: Does a pretrained module have a optimizer already associated? If so, it's being overwritten here:
@@ -471,8 +485,35 @@ def main():
             images, labels = Variable(images), Variable(labels)
         # Zero the parameter gradients:
         # optimizer.zero_grad()
-        # Compute forward pass/generate gradients:
+        # Try without a wrapper:
+        outputs = model(images)
+        print(type(outputs))
+        # if use_gpu:
+        #     outputs = Variable(outputs, requires_grad=True)
+        final_layer_weights, preds = torch.max(outputs.data, 1)
+        # See: http://pytorch.org/tutorials/beginner/former_torchies/autograd_tutorial.html
+        # See: http://pytorch.org/docs/0.1.12/autograd.html#torch.autograd.backward
+        # Container to hold gradients:
+        grads = torch.zeros(outputs.shape)
+        # grads = outputs.backward(grads)
+        grads = torch.autograd.backward(outputs.data, grads)
+        # grads = Variable(torch.LongTensor(torch.zeros_like(images)), requires_grad=True)
+        # grads = torch.autograd.backward(outputs)
+        # grads = outputs.backward()
+
+
+        # Compute forward pass:
         outputs = VBP(images)
+        # Compute backpropagation to get the gradients for visualization purposes:
+        # grads = torch.autograd.backward(outputs)
+        # loss = criterion(outputs, targets)
+        loss = criterion(outputs, labels)
+        # loss.backward()
+        print(list(VBP.parameters()))
+        parameters = list(model.parameters())
+        print('grads')
+        # See: https://discuss.pytorch.org/t/explicitly-obtain-gradients/4486/2?u=campellcl
+        print('Gradients for the first layer: %s ' % list(model.parameters())[0].grad)
         # Get weights and predictions:
         weights, preds = torch.max(outputs.data, 1)
 
