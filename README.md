@@ -17,63 +17,24 @@ Final two visualizations for CS 5720 (Scientific Computing with Visualization).
 ### Implementation Resources:
 * [PyTorch and Function Hooks](http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks)
 * [PyTorch and Function Hooks (2)]([https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/23)
+* [PyTorch Tensors and the register_hook Method](http://pytorch.org/docs/master/autograd.html#torch.Tensor.register_hook)
+* [Virginia PyTorch Lab](http://www.cs.virginia.edu/~vicente/vislang/notebooks/pytorch-lab.html)
+* [How to Use torch.autograd.backward when Variables are Non-Scalar](https://discuss.pytorch.org/t/how-to-use-torch-autograd-backward-when-variables-are-non-scalar/4191)
+* [Tensors that Track History](http://pytorch.org/tutorials/beginner/former_torchies/autograd_tutorial.html)
+
+#### Obtaining Gradients from Pre-Trained Models
+##### Method One: Gradients for Only Parameters
+1. `params = list(network.parameters())`
+2. Now `params` is a list of `nn.Parameter` objects, which are a subclass of `Variable`. Each object in `params` will have a `.grad` attribute containing the gradients.
+3. To access: `params[0].grad # gradient of the first module/layer's first weight`
+4. Now we can get the gradients for the entire layer: `grad = [p.grad for p in list(network.parameters())]`
+##### Method Two: Intermediate Gradients of Not Just Parameters
+1. `register_backward_hook()`
+* See [Virginia PyTorch Lab](http://www.cs.virginia.edu/~vicente/vislang/notebooks/pytorch-lab.html)
 
 ### Run Configurations:
-* `../data/ImageNet/Subsets/`
+* See attached RunConfigurations.txt file.
 
 
 ### Dataset:
-* [Attributes (French)](https://www.data.gouv.fr/s/resources/base-de-donnees-accidents-corporels-de-la-circulation/20170915-155209/Description_des_bases_de_donnees_ONISR_-Annees_2005_a_2016.pdf)
-### Dataset Attributes (English):
-* Num_Acc (Integer):
-    * Identifier of the accident identical to that of the file "rubric CHARACTERISTICS" taken for each vehicle described involved in the accident.
-* senc
-* catv (Integer): The category of the vehicle:
-    * 01 - Bicycle
-    * 02 - Moped < 50 cm^3
-    * 03 - Cart (Quadricycle with bodied motor) (formerly "cart or motor tricycle")
-    * 04 - Most used since 2006 (registered scooter)
-    * 05 - Most used since 2006 (motorcycle)
-    * 06 - Most used since 2006 (side-car)
-    * 07 - VL only
-    * 08 - Most used category (VL + caravan)
-    * 09 - Most used category (VL + trailer)
-    * 10 - VU only 1,5T <= GVW <= 3,5T with or without trailer (formerly VU only 1,5T <= GVW <= 3.5T)
-    * 11 - Most used since 2006 (VU (10) + caravan)
-    * 12 - Most used since 2006 (VU (10) + trailer)
-    * 13 - PL alone 3,5T <PTCA <= 7,5T 14 - PL only> 7,5T 15 - PL> 3,5T + trailer
-    * 16 - Tractor only
-    * 17 - Tractor + semi-trailer
-    * 18 - Most used since 2006 (public transit)
-    * 19 - Most used since 2006 (tramway)
-    * 20 - Special machinery
-    * 21 - Farm Tractor
-    * 30 - Scooter < 50 cm^3
-    * 31 - Motorcycle > 50 cm^3 and <= 125 cm^3
-    * 32 - Scooter > 50 cm^3 and <= 125 cm^3
-    * 33 - Motorcycle > 125 cm^3
-    * 34 - Scooter > 125 cm^3
-    * 35 - Lightweight Quad <= 50 cm^3 (Quadricycle with no bodied motor)
-    * 36 - Heavy Quad > 50 cm^3 (Quadricycle with no bodied motor)
-    * 37 - Bus
-    * 38 - Coach
-    * 39 - Train
-    * 40 - Tramway
-    * 99 - Other vehicle
-* occutc
-* obs (Integer): Obstacle fixed hit:
-    * 1 - Vehicle parked
-    * 2 - Tree
-    * 3 - Metal slide
-    * 4 - Concrete slide
-    * 5 - Other slide
-    * 6 - Building, wall, bridge stack
-    * 7 - Vertical sign support or emergency call station
-    * 8 - Post
-    * 9 - Urban furniture
-* obsm
-* choc
-* manv
-* num_veh
-### Resources:
-* [Helpful Tutorial](https://freakonometrics.hypotheses.org/20667)
+
