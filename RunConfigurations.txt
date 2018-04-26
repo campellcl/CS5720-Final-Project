@@ -1,0 +1,1 @@
+C:\Users\ccamp\Documents\GitHub\CS5720-Final-Project\data\PyTorchCNNVisualizations --arch resnet18 --pretrained --shuffle=True -j=4
