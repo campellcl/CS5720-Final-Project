@@ -428,7 +428,30 @@ def compute_gradients_for_single_image(model, input_image, target_class_label):
     gradients = None
 
     def module_gradient_hook(module, grad_in, grad_out):
+        """
+        module_gradient_hook: This is a module hook that is fired when backward is called on the source model.
+        :param module:
+        :param grad_in:
+        :param grad_out:
+        :source url: https://discuss.pytorch.org/t/exact-meaning-of-grad-input-and-grad-output/14186/2
+        :return:
+        """
         print('Now executing module_hook on module: %s' % module)
+        print('Inside ' + model.__class__.__name__ + ' backward')
+        print('Inside class:' + model.__class__.__name__)
+        print('')
+        print('grad_input: ', type(grad_in))
+        print('grad_input[0] size: None')
+        print('grad_input[1] size: ', grad_in[1].size())
+        print('grad_input[2] size: None')
+        # print('grad_input size:', grad_in[0].size())
+        print('grad_input[0]: ', type(grad_in[0]))
+        print('grad_output: ', type(grad_out))
+        # print('grad_output size:', grad_out[0].size())
+        print('grad_output[0]: ', type(grad_out[0]))
+        print('')
+        # print('grad_input norm:', grad_in[0].norm())
+
         print('grad_in:')
         print(grad_in)
         print('grad_in[0]')
@@ -448,6 +471,8 @@ def compute_gradients_for_single_image(model, input_image, target_class_label):
     input_image = input_image.resize(1, input_image.shape[0], input_image.shape[1], input_image.shape[2])
     # Compute forward pass through the model for this single image:
     output = model(input_image)
+    print('model params: %s' % model.parameters)
+    print('output\'s grad_fn: %s' % output.grad_fn)
     final_layer_weights, preds = torch.max(output.data, 1)
     # Zero the parameter gradients:
     # TODO: Not clear if the gradients of the optimizer or the model itself should be zeroed.
