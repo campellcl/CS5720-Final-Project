@@ -73,6 +73,7 @@ has_test_set = False
 best_prec1 = None
 dataset_sizes = None
 
+
 class AverageMeter(object):
     """
     AverageMeter: Computes and stores the average and current value during each epoch.
@@ -529,7 +530,7 @@ def main():
     # Create the model:
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True).cuda()
+        model = models.__dict__[args.arch](pretrained=True)
         if use_gpu:
             model = model.cuda()
     else:
@@ -537,7 +538,6 @@ def main():
         model = models.__dict__[args.arch]()
         print("=> training '{}' from scratch".format(args.arch))
         print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
-
         # Train the network:
         model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
 
