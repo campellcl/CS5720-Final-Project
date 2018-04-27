@@ -22,7 +22,7 @@ Final two visualizations for CS 5720 (Scientific Computing with Visualization).
 * [How to Use torch.autograd.backward when Variables are Non-Scalar](https://discuss.pytorch.org/t/how-to-use-torch-autograd-backward-when-variables-are-non-scalar/4191)
 * [Tensors that Track History](http://pytorch.org/tutorials/beginner/former_torchies/autograd_tutorial.html)
 * [Clarification - Using backward() on non-scalars](https://discuss.pytorch.org/t/clarification-using-backward-on-non-scalars/1059)
-
+* [Exact meaning of grad_input and grad_output](https://discuss.pytorch.org/t/exact-meaning-of-grad-input-and-grad-output/14186/2)
 
 #### Obtaining Gradients from Pre-Trained Models
 ##### Method One: Gradients for Only Parameters
