@@ -107,6 +107,58 @@ class VanillaBackprop():
         self.gradients = None
         # Put the model in evaluation mode:
         self.model.eval()
+        # Attach module/layer hooks:
+        self.hook_layers()
+
+    def hook_layers(self):
+        """
+        attach_hooks:
+        :return:
+        """
+        def module_gradient_hook(module, grad_in, grad_out):
+            """
+            module_gradient_hook: This function hook is executed during backpropagation and captures the gradients of the
+                hooked module with respect to the input images. The captured gradients are stored in this wrapper classes'
+                self.gradients. This hook will be executed when backward is called on the source model.
+            :param module: The layer in the network for which the hook has been attached to; the callee of this method.
+            :param grad_in: A 3-tuple containing the gradients with respect to the inputs propagated in the backward
+                direction.
+            :param grad_out: A 1-tuple containing the gradients exiting the hooked module in the backward direction.
+            :return None: Upon execution, the self.gradients field of the wrapper class will be propagated with grad_in[0].
+            """
+            print('Now executing module_hook on module: %s' % module)
+            print('Inside ' + self.model.__class__.__name__ + ' backward')
+            print('Inside class: ' + self.model.__class__.__name__)
+            print('')
+            print('grad_input type: %s of size %d' % (type(grad_in), len(grad_in)))
+            if grad_in[0] is not None:
+                print('\tgrad_input[0] type: ', type(grad_in[0]))
+                print('\tgrad_input[0] size: ', grad_in[0].size())
+            else:
+                print('\tgrad_input[0] type: None')
+                print('\tgrad_input[0] size: None')
+            if grad_in[1] is not None:
+                print('\tgrad_input[1] type: ', type(grad_in[1]))
+                print('\tgrad_input[1] size: ', grad_in[1].size())
+            else:
+                print('\tgrad_input[1] type: None')
+                print('\tgrad_input[1] size: None')
+            if grad_in[2] is not None:
+                print('\tgrad_input[2] type: ', type(grad_in[2]))
+                print('\tgrad_input[2] size: ', grad_in[2].size())
+            else:
+                print('\tgrad_input[2] type: None')
+                print('\tgrad_input[2] size: None')
+            print('')
+            print('grad_output type: %s of size %d' % (type(grad_out), len(grad_out)))
+            if grad_out[0] is not None:
+                print('\tgrad_output[0] type: ', type(grad_out[0]))
+                print('\tgrad_output[0]: ', grad_out[0].size())
+            else:
+                print('\tgrad_output[0] type: None')
+                print('\tgrad_output[0] size: None')
+            self.gradients = grad_in[0]
+
         # Hook the first layer to get the gradient:
         # See: http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks
         # See: https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/23?u=campellcl
@@ -117,55 +169,11 @@ class VanillaBackprop():
         # Insert a module hook to capture the gradient of the first layer during backpropagation:
         if self.model.features is not None:
             first_layer = self.model._modules['features'][0]
-            first_layer.register_backward_hook(self.module_gradient_hook)
+            first_layer.register_backward_hook(module_gradient_hook)
         else:
             network_layers_odict_keys = list(self.model._modules.keys())
             first_layer = self.model._modules.get(network_layers_odict_keys[0])
-            first_layer.register_backward_hook(self.module_gradient_hook)
-
-    def module_gradient_hook(self, module, grad_in, grad_out):
-        """
-        module_gradient_hook: This function hook is executed during backpropagation and captures the gradients of the
-            hooked module with respect to the input images. The captured gradients are stored in this wrapper classes'
-            self.gradients. This hook will be executed when backward is called on the source model.
-        :param module: The layer in the network for which the hook has been attached to; the callee of this method.
-        :param grad_in: A 3-tuple containing the gradients with respect to the inputs propagated in the backward
-            direction.
-        :param grad_out: A 1-tuple containing the gradients exiting the hooked module in the backward direction.
-        :return None: Upon execution, the self.gradients field of the wrapper class will be propagated with grad_in[0].
-        """
-        print('Now executing module_hook on module: %s' % module)
-        print('Inside ' + self.model.__class__.__name__ + ' backward')
-        print('Inside class: ' + self.model.__class__.__name__)
-        print('')
-        print('grad_input type: %s of size %d' % (type(grad_in), len(grad_in)))
-        if grad_in[0] is not None:
-            print('\tgrad_input[0] type: ', type(grad_in[0]))
-            print('\tgrad_input[0] size: ', grad_in[0].size())
-        else:
-            print('\tgrad_input[0] type: None')
-            print('\tgrad_input[0] size: None')
-        if grad_in[1] is not None:
-            print('\tgrad_input[1] type: ', type(grad_in[1]))
-            print('\tgrad_input[1] size: ', grad_in[1].size())
-        else:
-            print('\tgrad_input[1] type: None')
-            print('\tgrad_input[1] size: None')
-        if grad_in[2] is not None:
-            print('\tgrad_input[2] type: ', type(grad_in[2]))
-            print('\tgrad_input[2] size: ', grad_in[2].size())
-        else:
-            print('\tgrad_input[2] type: None')
-            print('\tgrad_input[2] size: None')
-        print('')
-        print('grad_output type: %s of size %d' % (type(grad_out), len(grad_out)))
-        if grad_out[0] is not None:
-            print('\tgrad_output[0] type: ', type(grad_out[0]))
-            print('\tgrad_output[0]: ', grad_out[0].size())
-        else:
-            print('\tgrad_output[0] type: None')
-            print('\tgrad_output[0] size: None')
-        self.gradients = grad_in[0]
+            first_layer.register_backward_hook(module_gradient_hook)
 
     def compute_gradients_for_single_image(self, input_image, target_class_label):
         """
