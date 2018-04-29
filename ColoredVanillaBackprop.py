@@ -94,21 +94,17 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-class VanillaBackprop(nn.Module):
+class VanillaBackprop():
     """
     VanillaBackprop: Performs standard backpropagation using the pre-trained model provided during instantiation.
     """
     def __init__(self, model):
-        super(VanillaBackprop, self).__init__()
-        print('[VanillaBackprop <wrapper>] Target architecture %s layers/modules (hook-able): %s' % (args.arch, model._modules.keys()))
+        print('[VanillaBackprop <wrapper>] Target architecture %s layers/modules (hook-able): %s'
+              % (args.arch, model._modules.keys()))
         # This is a reference to the pre-trained source model (i.e. Resnet18):
         self.model = model
         # This is where we will store the gradients of the network for visualization purposes:
         self.gradients = None
-        # We do want to require_grad for every param in the network (enabled by default) for visualization purposes.
-        # Freeze the network gradients in every layer:
-        for param in model.parameters():
-            param.requires_grad = True
         # Put the model in evaluation mode:
         self.model.eval()
         # Hook the first layer to get the gradient:
@@ -118,58 +114,90 @@ class VanillaBackprop(nn.Module):
         "If you care about grad or outputs of some module, use module hooks, if you care about the grad w.r.t. some 
             Variable attach a hook to a Variable (there already is a register_hook function)".
         '''
-        # Get the first layer of the network:
-        network_layers_odict_keys = list(self.model._modules.keys())
-        first_layer = self.model._modules.get(network_layers_odict_keys[0])
-        # gradient_hook = first_layer.register_forward_hook(self.layer_one_hook)
-        gradient_hook = first_layer.register_backward_hook(self.module_hook)
-        # gradient_hook = first_layer.register_forward_hook(
-        #     lambda layer, i, o:
-        #         print(
-        #             'layer/module:', type(layer),
-        #             '\ni:', type(i),
-        #                 '\n   len:', len(i),
-        #                 '\n   type:', type(i[0]),
-        #                 '\n   data size:', i[0].data.size(),
-        #                 '\n   data type:', i[0].data.type(),
-        #             '\no:', type(o),
-        #                 '\n   data size:', o.data.size(),
-        #                 '\n   data type:', o.data.type(),
-        #         )
-        # )
+        # Insert a module hook to capture the gradient of the first layer during backpropagation:
+        if self.model.features is not None:
+            first_layer = self.model._modules['features'][0]
+            first_layer.register_backward_hook(self.module_gradient_hook)
+        else:
+            network_layers_odict_keys = list(self.model._modules.keys())
+            first_layer = self.model._modules.get(network_layers_odict_keys[0])
+            first_layer.register_backward_hook(self.module_gradient_hook)
 
-    def forward(self, *input):
-        # Delegate to the super function of the provided pre-trained model parameter during instantiation:
-        return self.model.forward(*input)
-        # return super(nn.Module, self.model).forward(*input)
-        # return super(type(nn.Module), self.model).forward(*input)
-        # return super(VanillaBackprop, self).forward(*input)
-
-    def layer_one_hook(self, layer, input, result):
+    def module_gradient_hook(self, module, grad_in, grad_out):
         """
-        conv2d_hook: A function hooked into the first layer (Conv2d) of the pre-trained self.model. This function is
-            called when forward propagation is called on the fist layer. For additional information see the README.
-        :param input: A tuple of packed inputs representing input to the first layer of the network.
-        :param result: A Tensor, result.data contains the representation of this layer's output after a forward pass.
-        :source url: http://pytorch.org/tutorials/beginner/former_torchies/nn_tutorial.html#forward-and-backward-function-hooks
-        :return:
+        module_gradient_hook: This function hook is executed during backpropagation and captures the gradients of the
+            hooked module with respect to the input images. The captured gradients are stored in this wrapper classes'
+            self.gradients. This hook will be executed when backward is called on the source model.
+        :param module: The layer in the network for which the hook has been attached to; the callee of this method.
+        :param grad_in: A 3-tuple containing the gradients with respect to the inputs propagated in the backward
+            direction.
+        :param grad_out: A 1-tuple containing the gradients exiting the hooked module in the backward direction.
+        :return None: Upon execution, the self.gradients field of the wrapper class will be propagated with grad_in[0].
         """
-        print('Inside ' + self.__class__.__name__ + ' forward')
-        print('input: ', type(input))
-        print('input[0]: ', type(input[0]))
-        print('output: ', type(result))
+        print('Now executing module_hook on module: %s' % module)
+        print('Inside ' + self.model.__class__.__name__ + ' backward')
+        print('Inside class: ' + self.model.__class__.__name__)
         print('')
-        print('input size:', input[0].size())
-        print('output size:', result.data.size())
+        print('grad_input type: %s of size %d' % (type(grad_in), len(grad_in)))
+        if grad_in[0] is not None:
+            print('\tgrad_input[0] type: ', type(grad_in[0]))
+            print('\tgrad_input[0] size: ', grad_in[0].size())
+        else:
+            print('\tgrad_input[0] type: None')
+            print('\tgrad_input[0] size: None')
+        if grad_in[1] is not None:
+            print('\tgrad_input[1] type: ', type(grad_in[1]))
+            print('\tgrad_input[1] size: ', grad_in[1].size())
+        else:
+            print('\tgrad_input[1] type: None')
+            print('\tgrad_input[1] size: None')
+        if grad_in[2] is not None:
+            print('\tgrad_input[2] type: ', type(grad_in[2]))
+            print('\tgrad_input[2] size: ', grad_in[2].size())
+        else:
+            print('\tgrad_input[2] type: None')
+            print('\tgrad_input[2] size: None')
+        print('')
+        print('grad_output type: %s of size %d' % (type(grad_out), len(grad_out)))
+        if grad_out[0] is not None:
+            print('\tgrad_output[0] type: ', type(grad_out[0]))
+            print('\tgrad_output[0]: ', grad_out[0].size())
+        else:
+            print('\tgrad_output[0] type: None')
+            print('\tgrad_output[0] size: None')
+        self.gradients = grad_in[0]
 
-    def module_hook(self, module, grad_input, grad_out):
-        print('module hook')
-        print('grad_out', grad_out)
+    def compute_gradients_for_single_image(self, input_image, target_class_label):
+        """
+        compute_gradients_for_single_image: Computes the gradients for a single input image via one_hot_encoding and
+            backpropagation.
+        :param input_image: The image read by the dataloader for which the gradients are to be computed.
+        :param target_class_label: The actual class label of the supplied target image.
+        :return gradient_array: A numpy array populated by the gradient of the input image.
+        """
+        gradient_array = None
+        # Have to add an extra preceding dimension for the tensor of a single image:
+        input_image = input_image.resize(1, input_image.shape[0], input_image.shape[1], input_image.shape[2])
+        # Compute forward pass through the model for this single image:
+        output = self.model(input_image)
+        print('model params: %s' % self.model.parameters)
+        print('output\'s grad_fn: %s' % output.grad_fn)
+        final_layer_weights, preds = torch.max(output.data, 1)
+        # Zero the parameter gradients:
+        # TODO: Not clear if the gradients of the optimizer or the model itself should be zeroed.
+        # See: https://discuss.pytorch.org/t/zero-grad-optimizer-or-net/1887
+        self.model.zero_grad()
+        # Create a target vector for backpropagation:
+        # I believe we are setting the value to one because:
+        #   https://stackoverflow.com/questions/43451125/pytorch-what-are-the-gradient-arguments/47026836#47026836
+        one_hot_output = torch.FloatTensor(1, output.size()[-1]).zero_()
+        one_hot_output[0][target_class_label] = 1
+        # Compute the backward pass using the supplied gradient parameter
+        output.cpu().backward(gradient=one_hot_output)
+        # Convert PyTorch autograd.Variable into numpy array; [0] gets rid of the first channel (1, 3, 224, 224):
+        gradient_array = self.gradients.data.numpy()[0]
+        return gradient_array
 
-    def variable_hook(self, grad):
-        print('variable hook')
-        print('grad', grad)
-        return grad*.1
 
 def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field_size=224):
     """
@@ -416,95 +444,6 @@ def save_gradient_images(gradients, file_name):
     return NotImplementedError
 
 
-def compute_gradients_for_single_image(model, input_image, target_class_label):
-    """
-    compute_gradients_for_single_image: Computes the gradients for a single input image via one_hot_encoding and
-        backpropagation.
-    :param model: A nn.Module instance representing the neural network.
-    :param input_image: The image read by the dataloader for which the gradients are to be computed.
-    :param target_class_label: The actual class label of the supplied target image.
-    :return gradient_array: A numpy array populated by the gradient of the input image.
-    """
-    gradients = None
-
-    def module_gradient_hook(module, grad_in, grad_out):
-        """
-        module_gradient_hook: This is a module hook that is fired when backward is called on the source model.
-        :param module:
-        :param grad_in:
-        :param grad_out:
-        :source url: https://discuss.pytorch.org/t/exact-meaning-of-grad-input-and-grad-output/14186/2
-        :return:
-        """
-        print('Now executing module_hook on module: %s' % module)
-        print('Inside ' + model.__class__.__name__ + ' backward')
-        print('Inside class: ' + model.__class__.__name__)
-        print('')
-        print('grad_input type: %s of size %d' % (type(grad_in), len(grad_in)))
-        if grad_in[0] is not None:
-            print('\tgrad_input[0] type: ', type(grad_in[0]))
-            print('\tgrad_input[0] size: ', grad_in[0].size())
-        else:
-            print('\tgrad_input[0] type: None')
-            print('\tgrad_input[0] size: None')
-        if grad_in[1] is not None:
-            print('\tgrad_input[1] type: ', type(grad_in[1]))
-            print('\tgrad_input[1] size: ', grad_in[1].size())
-        else:
-            print('\tgrad_input[1] type: None')
-            print('\tgrad_input[1] size: None')
-        if grad_in[2] is not None:
-            print('\tgrad_input[2] type: ', type(grad_in[2]))
-            print('\tgrad_input[2] size: ', grad_in[2].size())
-        else:
-            print('\tgrad_input[2] type: None')
-            print('\tgrad_input[2] size: None')
-        print('')
-        print('grad_output type: %s of size %d' % (type(grad_out), len(grad_out)))
-        if grad_out[0] is not None:
-            print('\tgrad_output[0] type: ', type(grad_out[0]))
-            print('\tgrad_output[0]: ', grad_out[0].size())
-        else:
-            print('\tgrad_output[0] type: None')
-            print('\tgrad_output[0] size: None')
-        # print('grad_input norm:', grad_in[0].norm())
-        gradients = grad_in[0]
-        return gradients
-
-    # Insert a module hook to capture the gradient of the first layer during backpropagation:
-    if model.features is not None:
-        network_partition_odict_keys = list(model._modules.keys())
-        first_layer = model._modules['features'][0]
-        first_layer.register_backward_hook(module_gradient_hook)
-    else:
-        network_layers_odict_keys = list(model._modules.keys())
-        first_layer = model._modules.get(network_layers_odict_keys[0])
-        first_layer.register_backward_hook(module_gradient_hook)
-
-    # Have to add an extra preceding dimension for the tensor of a single image:
-    input_image = input_image.resize(1, input_image.shape[0], input_image.shape[1], input_image.shape[2])
-    # Compute forward pass through the model for this single image:
-    output = model(input_image)
-    print('model params: %s' % model.parameters)
-    print('output\'s grad_fn: %s' % output.grad_fn)
-    final_layer_weights, preds = torch.max(output.data, 1)
-    # Zero the parameter gradients:
-    # TODO: Not clear if the gradients of the optimizer or the model itself should be zeroed.
-    # See: https://discuss.pytorch.org/t/zero-grad-optimizer-or-net/1887
-    model.zero_grad()
-    # Create a target vector for backpropagation:
-    # I believe we are setting the value to one because:
-    #   https://stackoverflow.com/questions/43451125/pytorch-what-are-the-gradient-arguments/47026836#47026836
-    # TODO: Ask Dr. Parry for elaboration
-    one_hot_output = torch.FloatTensor(1, output.size()[-1]).zero_()
-    one_hot_output[0][target_class_label] = 1
-    # Compute the backward pass using the supplied gradient parameter
-    gradients = output.cpu().backward(gradient=one_hot_output)
-    # Convert PyTorch autograd.Variable into numpy array; [0] gets rid of the first channel (1, 3, 224, 224):
-    gradient_array = gradients.data.numpy()[0]
-    return gradient_array
-
-
 def main():
     dataset_is_present = {}
     has_train_set = os.path.isdir(os.path.join(args.data, 'train'))
@@ -539,10 +478,11 @@ def main():
     optimizer = torch.optim.SGD
 
     # Create the model:
+    VBP = None
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
-        if model.features is not None:
+        pretrained_model = models.__dict__[args.arch](pretrained=True)
+        if pretrained_model.features is not None:
             '''
             The code assumes layers in the model are seperated into two sections: 
                 'features': which contains the convolutional layers 
@@ -550,14 +490,17 @@ def main():
             '''
             # TODO: Perform this partitioning on models from the model zoo that do not natively support it (e.g. ResNet18)
         if use_gpu:
-            model = model.cuda()
+            pretrained_model = pretrained_model.cuda()
+            VBP = VanillaBackprop(pretrained_model)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        pretrained_model = models.__dict__[args.arch]()
         print("=> training '{}' from scratch".format(args.arch))
         print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
         # Train the network:
-        model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
+        pretrained_model = train(net=pretrained_model, train_loader=data_loaders['train'],
+                                 criterion=criterion, optimizer=optimizer)
+        VBP = VanillaBackprop(pretrained_model)
 
     # Resume from checkpoint if flag is present:
     if args.resume:
@@ -567,7 +510,7 @@ def main():
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec_1']
-            model.load_state_dict(checkpoint['state_dict'])
+            VBP.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
@@ -590,7 +533,7 @@ def main():
         # outputs = model(images)
         # final_layer_weights, preds = torch.max(outputs.data, 1)
         # TODO: Change this hardcoded sample label:
-        gradient_array = compute_gradients_for_single_image(model, images[0], 243)
+        gradient_array = VBP.compute_gradients_for_single_image(input_image=images[0], target_class_label=243)
 
         '''
             Legacy code that may still be of use until the gradient issue is resolved:
@@ -653,7 +596,7 @@ def main():
 
         # loss.backward()
         # print(list(VBP.parameters()))
-        parameters = list(model.parameters())
+        # parameters = list(model.parameters())
         # print('grads')
         # See: https://discuss.pytorch.org/t/explicitly-obtain-gradients/4486/2?u=campellcl
         # print('Gradients for the first layer: %s ' % list(model.parameters())[0].grad)
