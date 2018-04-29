@@ -422,7 +422,7 @@ def compute_gradients_for_single_image(model, input_image, target_class_label):
         backpropagation.
     :param model: A nn.Module instance representing the neural network.
     :param input_image: The image read by the dataloader for which the gradients are to be computed.
-    :param target_class_label: The target class label of the supplied image.
+    :param target_class_label: The actual class label of the supplied target image.
     :return gradient_array: A numpy array populated by the gradient of the input image.
     """
     gradients = None
@@ -438,34 +438,48 @@ def compute_gradients_for_single_image(model, input_image, target_class_label):
         """
         print('Now executing module_hook on module: %s' % module)
         print('Inside ' + model.__class__.__name__ + ' backward')
-        print('Inside class:' + model.__class__.__name__)
+        print('Inside class: ' + model.__class__.__name__)
         print('')
-        print('grad_input: ', type(grad_in))
-        print('grad_input[0] size: None')
-        print('grad_input[1] size: ', grad_in[1].size())
-        print('grad_input[2] size: None')
-        # print('grad_input size:', grad_in[0].size())
-        print('grad_input[0]: ', type(grad_in[0]))
-        print('grad_output: ', type(grad_out))
-        # print('grad_output size:', grad_out[0].size())
-        print('grad_output[0]: ', type(grad_out[0]))
+        print('grad_input type: %s of size %d' % (type(grad_in), len(grad_in)))
+        if grad_in[0] is not None:
+            print('\tgrad_input[0] type: ', type(grad_in[0]))
+            print('\tgrad_input[0] size: ', grad_in[0].size())
+        else:
+            print('\tgrad_input[0] type: None')
+            print('\tgrad_input[0] size: None')
+        if grad_in[1] is not None:
+            print('\tgrad_input[1] type: ', type(grad_in[1]))
+            print('\tgrad_input[1] size: ', grad_in[1].size())
+        else:
+            print('\tgrad_input[1] type: None')
+            print('\tgrad_input[1] size: None')
+        if grad_in[2] is not None:
+            print('\tgrad_input[2] type: ', type(grad_in[2]))
+            print('\tgrad_input[2] size: ', grad_in[2].size())
+        else:
+            print('\tgrad_input[2] type: None')
+            print('\tgrad_input[2] size: None')
         print('')
+        print('grad_output type: %s of size %d' % (type(grad_out), len(grad_out)))
+        if grad_out[0] is not None:
+            print('\tgrad_output[0] type: ', type(grad_out[0]))
+            print('\tgrad_output[0]: ', grad_out[0].size())
+        else:
+            print('\tgrad_output[0] type: None')
+            print('\tgrad_output[0] size: None')
         # print('grad_input norm:', grad_in[0].norm())
-
-        print('grad_in:')
-        print(grad_in)
-        print('grad_in[0]')
-        print(grad_in[0])
-        print('grad_out:')
-        print(grad_out)
-        # TODO: shouldn't this be the gradient output from the layer?
-        # gradients = grad_in[0]
-        gradients = grad_in[1]
+        gradients = grad_in[0]
+        return gradients
 
     # Insert a module hook to capture the gradient of the first layer during backpropagation:
-    network_layers_odict_keys = list(model._modules.keys())
-    first_layer = model._modules.get(network_layers_odict_keys[0])
-    first_layer.register_backward_hook(module_gradient_hook)
+    if model.features is not None:
+        network_partition_odict_keys = list(model._modules.keys())
+        first_layer = model._modules['features'][0]
+        first_layer.register_backward_hook(module_gradient_hook)
+    else:
+        network_layers_odict_keys = list(model._modules.keys())
+        first_layer = model._modules.get(network_layers_odict_keys[0])
+        first_layer.register_backward_hook(module_gradient_hook)
 
     # Have to add an extra preceding dimension for the tensor of a single image:
     input_image = input_image.resize(1, input_image.shape[0], input_image.shape[1], input_image.shape[2])
@@ -482,13 +496,11 @@ def compute_gradients_for_single_image(model, input_image, target_class_label):
     # I believe we are setting the value to one because:
     #   https://stackoverflow.com/questions/43451125/pytorch-what-are-the-gradient-arguments/47026836#47026836
     # TODO: Ask Dr. Parry for elaboration
-    one_hot_output = torch.FloatTensor(1, output.size()[-1])
-    one_hot_output[0][preds[0]] = 1
+    one_hot_output = torch.FloatTensor(1, output.size()[-1]).zero_()
+    one_hot_output[0][target_class_label] = 1
     # Compute the backward pass using the supplied gradient parameter
-    output.cpu().backward(gradient=one_hot_output)
-    # Convert PyTorch autograd.Variable into numpy array
-    # [0] gets rid of the first channel (1, 3, 224, 224):
-    print(model.parameters)
+    gradients = output.cpu().backward(gradient=one_hot_output)
+    # Convert PyTorch autograd.Variable into numpy array; [0] gets rid of the first channel (1, 3, 224, 224):
     gradient_array = gradients.data.numpy()[0]
     return gradient_array
 
@@ -529,7 +541,14 @@ def main():
     # Create the model:
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True).cuda()
+        model = models.__dict__[args.arch](pretrained=True)
+        if model.features is not None:
+            '''
+            The code assumes layers in the model are seperated into two sections: 
+                'features': which contains the convolutional layers 
+                'classifier': which contains the fully connected layer (after flatting out convolutions). 
+            '''
+            # TODO: Perform this partitioning on models from the model zoo that do not natively support it (e.g. ResNet18)
         if use_gpu:
             model = model.cuda()
     else:
@@ -537,7 +556,6 @@ def main():
         model = models.__dict__[args.arch]()
         print("=> training '{}' from scratch".format(args.arch))
         print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
-
         # Train the network:
         model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
 
@@ -553,7 +571,6 @@ def main():
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
-
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
@@ -572,7 +589,8 @@ def main():
             images, labels = Variable(images), Variable(labels)
         # outputs = model(images)
         # final_layer_weights, preds = torch.max(outputs.data, 1)
-        gradient_array = compute_gradients_for_single_image(model, images[0], labels[0])
+        # TODO: Change this hardcoded sample label:
+        gradient_array = compute_gradients_for_single_image(model, images[0], 243)
 
         '''
             Legacy code that may still be of use until the gradient issue is resolved:
