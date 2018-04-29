@@ -1,1 +1,2 @@
 data\PyTorchCNNVisualizations --pretrained --arch=alexnet -j=4
+..\data\PyTorchCNNVisualizations -v=vanilla_backprop --pretrained --arch=alexnet -j=4
