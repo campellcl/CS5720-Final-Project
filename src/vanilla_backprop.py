@@ -1,16 +1,12 @@
 """
-Created on Thu Oct 26 11:19:58 2017
-
-@author: Utku Ozbulak - github.com/utkuozbulak
+vanilla_backprop.py
+Performs vanilla backpropagation and returns the gradients of the input image for visualization.
+Adapted from: Utku Ozbulak - github.com/utkuozbulak
 """
-import argparse
-import os
-import numpy as np
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
-from torchvision import datasets, models, transforms, utils
-from src.misc_functions import get_params, convert_to_grayscale, save_gradient_images
+
+__author__ = 'Chris Campell'
+__created__ = '4/29/2018'
 
 '''
 Command Line Argument Parsing
