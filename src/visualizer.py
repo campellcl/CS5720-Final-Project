@@ -79,7 +79,7 @@ def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
         elif dataset_name == 'test' and is_present:
-                data_transforms[dataset_name] = transforms.Compose([
+            data_transforms[dataset_name] = transforms.Compose([
                 transforms.Resize(input_load_size),
                 transforms.CenterCrop(receptive_field_size),
                 transforms.ToTensor(),
@@ -87,7 +87,7 @@ def get_data_transforms(dataset_is_present, input_load_size=256, receptive_field
             ])
         elif dataset_name == 'viz' and is_present:
             data_transforms[dataset_name] = transforms.Compose([
-                transforms.Resize(receptive_field_size),
+                transforms.Resize((receptive_field_size, receptive_field_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
@@ -153,38 +153,57 @@ def get_data_loaders(image_loaders):
     return data_loaders
 
 
-def save_gradient_image(gradient_data, greyscale=False):
+def save_transformed_image(image_data, class_label, greyscale=False):
     """
-    save_gradient_image:
+    save_transformed_image:  Saves the original input image transformed via the image transformation pipeline.
+    :param image_data:
+    :param class_label:
+    :param greyscale:
+    :return:
+    """
+    output_path = os.path.join(str.replace(args.data, 'data', 'results'))
+    output_path = os.path.join(output_path, str(class_label))
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    if greyscale:
+        image_data = convert_to_grayscale(image_data)
+        output_path = os.path.join(output_path, 'transformed_gray_original.jpg')
+    else:
+        output_path = os.path.join(output_path, 'transformed_original.jpg')
+    # normalize:
+    image_data = image_data - image_data.min()
+    image_data /= image_data.max()
+    image_data = np.uint8(image_data * 255).transpose(1, 2, 0)
+    image_data = image_data[..., ::-1]
+    cv2.imwrite(output_path, image_data)
+
+
+def save_gradient_image(gradient_data, class_label, greyscale=False):
+    """
+    save_gradient_image: Saves the raw gradient data as either an RGB or greyscale image.
     :param gradient_data: A torch.cuda.FloatTensor or (if CUDA disabled a torch.FloatTensor) representing the gradient
         of the weights with respect to the input image.
     :param greyscale: A boolean flag indicating whether to save a grayscale gradient or a colored gradient image.
     :return:
     """
     output_path = os.path.join(str.replace(args.data, 'data', 'results'))
-    # Duplicate the directory structure of args.data to store output images:
-    for item in os.listdir(os.path.join(args.data, 'viz')):
-        s = os.path.join(args.data, item)
-        d = os.path.join(output_path, item)
-        if not os.path.isdir(d):
-            os.mkdir(d)
-        if args.viz == 'vanilla_backprop':
-            if greyscale:
-                gradient_data = convert_to_grayscale(gradient_data)
-                output_file_path = os.path.join(d, 'vanilla_bp_gray.jpg')
-            else:
-                output_file_path = os.path.join(d, 'vanilla_bp_color.jpg')
-            # normalize:
-            gradient_data = gradient_data - gradient_data.min()
-            gradient_data /= gradient_data.max()
-            gradient_data = np.uint8(gradient_data * 255).transpose(1, 2, 0)
-            gradient_data = gradient_data[..., ::-1]
+    output_path = os.path.join(output_path, str(class_label))
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    if greyscale:
+        gradient_data = convert_to_grayscale(gradient_data)
+        output_path = os.path.join(output_path, 'vanilla_bp_gray.png')
+    else:
+        output_path = os.path.join(output_path, 'vanilla_bp_color.png')
+    # Rescale from Tensor's range [-1, 1] to image range [0, 1]:
+    gradient_data = gradient_data - gradient_data.min()
+    gradient_data /= gradient_data.max()
+    # Convert RGB to GBR (8 bit image) because this is how OpenCV does it:
+    gradient_data = np.uint8(gradient_data * 255).transpose(1, 2, 0)
+    gradient_data = gradient_data[..., ::-1]
+    # Use OpenCV to save the image:
+    cv2.imwrite(output_path, gradient_data)
 
-        # write image to hard drive
-        cv2.imwrite(output_file_path, gradient_data)
-        # shutil.copytree(s, d, symlinks=False, ignore=None)
-        # else:
-        #     os.mkdir(d)
 
 def main():
     dataset_is_present = {
@@ -250,8 +269,9 @@ def main():
         for j, (image, label) in enumerate(zip(images, labels)):
             gradient = model.compute_gradients_for_single_image(image, class_names[j])
             # Save the image:
-            save_gradient_image(gradient.data, greyscale=False)
-            save_gradient_image(gradient.data, greyscale=True)
+            save_transformed_image(image.data, class_names[j], greyscale=False)
+            save_gradient_image(gradient.data, class_names[j], greyscale=False)
+            save_gradient_image(gradient.data, class_names[j], greyscale=True)
 
 if __name__ == '__main__':
     main()
