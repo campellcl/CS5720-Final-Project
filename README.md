@@ -32,5 +32,11 @@ Final two visualizations for CS 5720 (Scientific Computing with Visualization).
         <td width="27%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/243/vanilla_bp_color.png"></td>
         <td width="27%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/243/vanilla_bp_gray.png"></td>
     </tr>
+    <tr>
+        <td width='19%' align='center'>Target Class (281) [Tabby Cat]:</td>
+        <td width="27%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/transformed_original.jpg"></td>
+        <td width="27%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/vanilla_bp_color.png"></td>
+        <td width="27%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/vanilla_bp_gray.png"></td>
+    </tr>
     </tbody>
 </table>
