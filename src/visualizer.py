@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torch.autograd import Variable
 from torchvision import datasets, models, transforms, utils
 from src.misc_functions import get_params, convert_to_grayscale, save_gradient_images
@@ -34,6 +35,12 @@ parser.add_argument('--pretrained', dest='pretrained', action='store_true', help
 # How many images will the data loader grab during one call to next(iter(data_loader)) or iter(data_loader).next()
 parser.add_argument('-b', '--batch_size', default=256, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
+parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+                    metavar='LR', help='initial learning rate')
+parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+                    help='momentum')
+parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
+                    metavar='W', help='weight decay (default: 1e-4)')
 # Shuffle (bool, optional): set to ``True`` to have the data reshuffled at every epoch (default: False).
 parser.add_argument('--shuffle', '-s', default=False, type=bool, metavar='SHUFFLE',
                     help='Reshuffle the data at every epoch? (default: False)')
@@ -205,6 +212,34 @@ def save_gradient_image(gradient_data, class_label, greyscale=False):
     cv2.imwrite(output_path, gradient_data)
 
 
+def save_gradient_frame(gradient, target_class_label, file_name, grayscale=False):
+    """
+    save_gradient_frame: Saves the gradient snapshot as an image with the provided file_name (preferrably ending in an
+        epoch number e#).
+    :param gradient: A torch.cuda.FloatTensor or (if CUDA disabled a torch.FloatTensor) representing the gradient
+        of the weights with respect to the input image.
+    :param target_label: The target class label which determines which directory the image should be saved under.
+    :param file_name: The name to save the file under. This filename preferably ends with _e# where # is the epoch
+        number during training in which the gradient was captured.
+    :param grayscale: A boolean flag indicating whether to save a grayscale gradient or a colored gradient image.
+    :return:
+    """
+    output_path = os.path.join(str.replace(args.data, 'data', 'results'))
+    output_path = os.path.join(output_path, str(target_class_label))
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    if grayscale:
+        gradient = convert_to_grayscale(gradient)
+    output_path = os.path.join(output_path, file_name)
+    # Rescale from Tensor's range [-1, 1] to image range [0, 1]:
+    gradient = gradient - gradient.min()
+    gradient /= gradient.max()
+    # Convert RGB to GBR (8 bit image) because this is how OpenCV does it:
+    gradient = np.uint8(gradient * 255).transpose(1, 2, 0)
+    gradient = gradient[..., ::-1]
+    # Use OpenCV to save the image:
+    cv2.imwrite(output_path, gradient)
+
 def main():
     dataset_is_present = {
         'train': os.path.isdir(os.path.join(args.data, 'train')),
@@ -249,16 +284,18 @@ def main():
         # pretrained_model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
         return NotImplementedError
 
-    if args.viz == 'vanilla_backprop':
-        model = VanillaBackprop(model=pretrained_model)
-    elif args.viz == 'guided_backprop':
-        # GBP = GuidedBackprop(model=pretrained_model)
-        return NotImplementedError
+    # if args.viz == 'vanilla_backprop':
+    #     model = VanillaBackprop(model=pretrained_model)
+    # elif args.viz == 'guided_backprop':
+    #     # GBP = GuidedBackprop(model=pretrained_model)
+    #     return NotImplementedError
 
-    '''
-    Visualize:
-    '''
-    # Retrieve all visualization data:
+
+
+    # train_and_visualize(model=model, train_loader=data_loaders['train'])
+
+    num_epochs = 3
+    # Train and repeatedly capture the gradient for visualization purposes:
     for i, data in enumerate(data_loaders['viz']):
         images, labels = data
         # Wrap input in autograd Variable:
@@ -267,11 +304,45 @@ def main():
         else:
             images, labels = Variable(images, requires_grad=True), Variable(labels)
         for j, (image, label) in enumerate(zip(images, labels)):
-            gradient = model.compute_gradients_for_single_image(image, class_names[j])
-            # Save the image:
-            save_transformed_image(image.data, class_names[j], greyscale=False)
-            save_gradient_image(gradient.data, class_names[j], greyscale=False)
-            save_gradient_image(gradient.data, class_names[j], greyscale=True)
+            # For visualization purposes we re-create the classifier for every image in its original pre-trained state:
+            if args.viz == 'vanilla_backprop':
+                model = VanillaBackprop(model=pretrained_model)
+            elif args.viz == 'guided_backprop':
+                # GBP = GuidedBackprop(model=pretrained_model)
+                return NotImplementedError
+            # Define loss function (criterion):
+            if use_gpu:
+                criterion = nn.CrossEntropyLoss().cuda()
+            else:
+                criterion = nn.CrossEntropyLoss()
+            # Create an optimizer which only fine-tunes the last fully connected layers:
+            optimizer = torch.optim.SGD(model.model.classifier.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+            for epoch in range(num_epochs):
+                gradient = model.compute_gradients_for_single_image(image, class_names[j])
+                # update the weights with the update/learning rule:
+                file_name = 'vanilla_bp_color' + '_e' + str(epoch) + '.png'
+                save_gradient_frame(gradient=gradient.data, target_class_label=class_names[j], file_name=file_name, grayscale=False)
+                optimizer.step()
+
+
+
+    '''
+    Visualize:
+    '''
+    # Retrieve all visualization data:
+    # for i, data in enumerate(data_loaders['viz']):
+    #     images, labels = data
+    #     # Wrap input in autograd Variable:
+    #     if use_gpu:
+    #         images, labels = Variable(images.cuda(), requires_grad=True), Variable(labels.cuda())
+    #     else:
+    #         images, labels = Variable(images, requires_grad=True), Variable(labels)
+    #     for j, (image, label) in enumerate(zip(images, labels)):
+    #         gradient = model.compute_gradients_for_single_image(image, class_names[j])
+    #         # Save the image:
+    #         save_transformed_image(image.data, class_names[j], greyscale=False)
+    #         save_gradient_image(gradient.data, class_names[j], greyscale=False)
+    #         save_gradient_image(gradient.data, class_names[j], greyscale=True)
 
 if __name__ == '__main__':
     main()
