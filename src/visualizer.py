@@ -268,21 +268,7 @@ def main():
     # Data Loaders:
     data_loaders = get_data_loaders(image_loaders)
 
-    model = None
-    # Create the model:
-    if args.pretrained:
-        print("=> using pre-trained model '{}'".format(args.arch))
-        pretrained_model = models.__dict__[args.arch](pretrained=True)
-        if use_gpu:
-            pretrained_model = pretrained_model.cuda()
-    else:
-        print("=> creating model '{}'".format(args.arch))
-        pretrained_model = models.__dict__[args.arch]()
-        print("=> training '{}' from scratch".format(args.arch))
-        print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
-        # Train the network:
-        # pretrained_model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
-        return NotImplementedError
+
 
     # if args.viz == 'vanilla_backprop':
     #     model = VanillaBackprop(model=pretrained_model)
@@ -305,6 +291,21 @@ def main():
             images, labels = Variable(images, requires_grad=True), Variable(labels)
         for j, (image, label) in enumerate(zip(images, labels)):
             # For visualization purposes we re-create the classifier for every image in its original pre-trained state:
+            model = None
+            # Create the model:
+            if args.pretrained:
+                print("=> using pre-trained model '{}'".format(args.arch))
+                pretrained_model = models.__dict__[args.arch](pretrained=True)
+                if use_gpu:
+                    pretrained_model = pretrained_model.cuda()
+            else:
+                print("=> creating model '{}'".format(args.arch))
+                pretrained_model = models.__dict__[args.arch]()
+                print("=> training '{}' from scratch".format(args.arch))
+                print('=> CUDA is enabled?: %s\n=> Will use GPU to train?: %s' % (use_gpu, use_gpu))
+                # Train the network:
+                # pretrained_model = train(net=model, train_loader=data_loaders['train'], criterion=criterion, optimizer=optimizer)
+                return NotImplementedError
             if args.viz == 'vanilla_backprop':
                 model = VanillaBackprop(model=pretrained_model)
             elif args.viz == 'guided_backprop':
