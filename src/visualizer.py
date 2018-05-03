@@ -226,6 +226,8 @@ def save_gradient_frame(gradient, target_class_label, file_name, grayscale=False
     """
     output_path = os.path.join(str.replace(args.data, 'data', 'results'))
     output_path = os.path.join(output_path, str(target_class_label))
+    # This time we add a folder just for the gradient animations:
+    output_path = os.path.join(output_path, 'anim')
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     if grayscale:
@@ -239,6 +241,7 @@ def save_gradient_frame(gradient, target_class_label, file_name, grayscale=False
     gradient = gradient[..., ::-1]
     # Use OpenCV to save the image:
     cv2.imwrite(output_path, gradient)
+
 
 def main():
     dataset_is_present = {
