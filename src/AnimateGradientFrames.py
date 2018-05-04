@@ -12,6 +12,36 @@ import cv2
 from scipy import misc
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import pylab as pl
+
+
+def animate(img_dict, clss):
+    """
+
+    :param img_dict:
+    :return:
+    """
+    if clss not in img_dict:
+        print('The desired class to animate is not in the provided image dictionary!')
+        exit(-1)
+    # Get the images for the target class to animate:
+    images = img_dict[clss]
+    '''
+    Animate the loaded images:
+    '''
+    fig = plt.figure()
+    im = plt.imshow(images[0], vmin=0, vmax=255)
+    # function to update figure
+    def updatefig(j):
+        # set the data in the axesimage object
+        im.set_array(images[j])
+        # return the artists set
+        return [im]
+    # kick off the animation
+    # interval= Delay between frames in milliseconds
+    ani = animation.FuncAnimation(fig, updatefig, frames=20,
+                                  interval=500, blit=True)
+    plt.show()
 
 
 def main(source_dir):
@@ -41,26 +71,26 @@ def main(source_dir):
     """
     Load images from container directories:
     """
-    images = []
+    images = {}
     for clss, meta in images_metadata.items():
+        images[clss] = []
         for img_path in meta['img_paths']:
             image = cv2.imread(img_path)
-            images.append(image)
+            images[clss].append(image)
     """
     Animate the loaded images:
     """
-    fig = plt.figure()
-    im = plt.imshow(images[0], vmin=0, vmax=255)
-    # function to update figure
-    def updatefig(j):
-        # set the data in the axesimage object
-        im.set_array(images[j])
-        # return the artists set
-        return [im]
-    # kick off the animation
-    ani = animation.FuncAnimation(fig, updatefig, frames=20,
-                              interval=50, blit=True)
-    plt.show()
+    animate(images, clss=281)
+    # img = None
+    # for clss, meta in images_metadata.items():
+    #     for img_path in meta['img_paths']:
+    #         im = pl.imread(img_path)
+    #         if img is None:
+    #             img = pl.imshow(im)
+    #         else:
+    #             img.set_data(im)
+    #         pl.pause(.5)
+    #         pl.draw()
 
 
 if __name__ == '__main__':
