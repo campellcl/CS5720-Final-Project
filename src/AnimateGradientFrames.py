@@ -42,32 +42,16 @@ def main(source_dir):
     Load images from container directories:
     """
     images = []
-
     for clss, meta in images_metadata.items():
         for img_path in meta['img_paths']:
             image = cv2.imread(img_path)
             images.append(image)
-
-    #     for file in filenames:
-    #         image = cv2.imread(os.path.join(path, file))
-    #         images.append(image)
-            # Hide ticks on X and Y axis:
-            # plt.xticks([]), plt.yticks([])
-            # plt.imshow(image)
-            # plt.show()
-    # print(subdir_anim_paths)
-    # print(subdirs)
-    # plt_images = []
-    # for img in images:
-    #     im = plt.imshow(img, animated=True)
-    #     plt_images.append([im])
-    # fig = plt.figure()
-    # anim = animation.ArtistAnimation(fig, images, interval=50, blit=True, repeat_delay=10000000000000000)
-    # plt.show()
+    """
+    Animate the loaded images:
+    """
     fig = plt.figure()
     im = plt.imshow(images[0], vmin=0, vmax=255)
     # function to update figure
-
     def updatefig(j):
         # set the data in the axesimage object
         im.set_array(images[j])
@@ -77,21 +61,6 @@ def main(source_dir):
     ani = animation.FuncAnimation(fig, updatefig, frames=20,
                               interval=50, blit=True)
     plt.show()
-    # for subdir, dirs, files in os.walk(source_dir):
-    #     print('dirs', dirs)
-    #     print('files', files)
-    #     for dir in dirs:
-    #         if os.path.isdir(os.path.join(source_dir, dir)):
-    #             pass
-            # if dir == 'anim':
-            #     for file in os.walk(dir):
-            #         print('file', file)
-
-
-        # for file in files:
-        #     relDir = os.path.relpath(subdir, source_dir)
-        #     print(os.path.join(subdir, file))
-        # print('subdir', subdir)
 
 
 if __name__ == '__main__':
