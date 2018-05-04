@@ -17,8 +17,21 @@ import matplotlib.animation as animation
 def main(source_dir):
     # Get a list of subdirectories one level down in the parent source_dir:
     subdirs = next(os.walk(source_dir))[1]
+    # subdirs = [e.name for e in os.scandir(source_dir) if e.is_dir()]
+    images_metadata = dict.fromkeys(int(clss) for clss in subdirs)
+    print('images_metadata:', images_metadata)
+    # Add the anim/ subfolder path to every class label in the metadata:
+    for subdir in subdirs:
+        images_metadata[int(subdir)]['anim_path'] = os.path.join(source_dir, subdir + '/anim')
+    # Add the image path themselves to the metadata for each class:
+    # TODO: Save the paths for every image in the clss/anim/ directory under images_metadata[clss][image_path].
+    for clss, img_meta in images_metadata:
+        for path in img_meta
+
+
+    # Unrefactored code below:
     images = []
-    subdirs = [e.name for e in os.scandir(source_dir) if e.is_dir()]
+
     subdir_anim_paths = [os.path.join(source_dir, subdir + '/anim') for subdir in subdirs]
     # Walk through every directory in PyTorchCNNVisualizations that has an anim subfolder:
     for path in subdir_anim_paths:
