@@ -15,7 +15,7 @@ import matplotlib.animation as animation
 import pylab as pl
 
 
-def animate(img_dict, clss):
+def animate(img_dict, clss, fps):
     """
 
     :param img_dict:
@@ -40,7 +40,7 @@ def animate(img_dict, clss):
     # kick off the animation
     # interval= Delay between frames in milliseconds
     ani = animation.FuncAnimation(fig, updatefig, frames=20,
-                                  interval=500, blit=True)
+                                  interval=fps*1000, blit=True)
     plt.show()
 
 
@@ -67,7 +67,7 @@ def main(source_dir):
         filenames = next(os.walk(meta['anim_path']))[2]
         img_meta[clss]['img_paths'] = [meta['anim_path'] + '/' + fname for fname in filenames]
         # print('filenames:', filenames)
-    print('img_meta', img_meta)
+    # print('img_meta', img_meta)
     """
     Load images from container directories:
     """
@@ -80,7 +80,7 @@ def main(source_dir):
     """
     Animate the loaded images:
     """
-    animate(images, clss=281)
+    animate(images, clss=281, fps=.5)
     # img = None
     # for clss, meta in images_metadata.items():
     #     for img_path in meta['img_paths']:
@@ -95,6 +95,6 @@ def main(source_dir):
 
 if __name__ == '__main__':
     results_dir = '../results/PyTorchCNNVisualizations/'
-    if os.path.isdir(results_dir):
-        print('dir exists')
+    # if os.path.isdir(results_dir):
+    #     print('dir exists')
     main(source_dir=results_dir)
