@@ -1,0 +1,13 @@
+file 'anim/vanilla_bp_color_e0.png'
+duration 1
+file 'anim/vanilla_bp_color_e1.png'
+duration 1
+file 'anim/vanilla_bp_color_e2.png'
+duration 1
+file 'anim/vanilla_bp_color_e3.png'
+duration 1
+file 'anim/vanilla_bp_color_e4.png'
+duration 1
+file 'anim/vanilla_bp_color_e5.png'
+duration 1
+file 'anim/vanilla_bp_color_e5.png'
