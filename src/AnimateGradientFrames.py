@@ -11,11 +11,14 @@ import os
 import cv2
 from scipy import misc
 import matplotlib.pyplot as plt
+import tempfile
+plt.rcParams['animation.ffmpeg_path'] = 'C:\\Program Files (x86)\\ffmpeg\\ffmpeg-4.0-win64-static\\bin\\ffmpeg.exe'
 import matplotlib.animation as animation
 import pylab as pl
 
 
-def animate(img_dict, clss, fps):
+
+def animate(img_dict, clss, fps, write_path):
     """
 
     :param img_dict:
@@ -51,6 +54,14 @@ def animate(img_dict, clss, fps):
     # trigger animation:
     ani = animation.FuncAnimation(fig, updatefig, frames=len(images),
                                   interval=fps*1000, blit=True)
+    # Save animation:
+    # writer = animation.FFMpegWriter(fps=6, metadata=dict(title=clss), bitrate=None, extra_args=['-r', '1', '-pix_fmt', 'yuv420p'])
+    writer = animation.FFMpegWriter(metadata=dict(title=clss), extra_args=['-pix_fmt', 'yuv420p', '-framerate', '1', '-r', '30', '-c', 'libx264', '-f', 'gif'])
+    # writer = animation.FFMpegWriter(fps=1)
+    # writer = Writer(fps=fps, metadata=dict(clss=clss), bitrate=1800)
+    # fname = str(clss) + '.mp4'
+    print(write_path)
+    ani.save(filename=write_path, writer=writer)
     plt.show()
 
 
@@ -90,7 +101,7 @@ def main(source_dir):
     """
     Animate the loaded images:
     """
-    animate(images, clss=281, fps=.5)
+    animate(images, clss=281, fps=.5, write_path=os.path.join(source_dir, '281/281.mp4'))
     # img = None
     # for clss, meta in images_metadata.items():
     #     for img_path in meta['img_paths']:
