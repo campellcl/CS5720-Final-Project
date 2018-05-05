@@ -17,6 +17,21 @@ import matplotlib.animation as animation
 import pylab as pl
 
 
+def save_matplotlib_images(images):
+    for clss, imgs in images.items():
+        fig = plt.figure()
+        fig.suptitle('class %s' % clss)
+        for i, img in enumerate(imgs):
+            im = plt.imshow(img, vmin=0, vmax=255)
+            plt.title('epoch: %d' % i)
+            plt.draw()
+            write_path = '../results/PyTorchCNNVisualizations/' + str(clss) + '/plt'
+            fname = write_path + '/vanilla_bp_color_plt_' + str(i) + '.png'
+            if not os.path.isdir(write_path):
+                os.mkdir(write_path)
+            if not os.path.isfile(fname):
+                plt.savefig(fname)
+
 
 def animate(img_dict, clss, fps, write_path):
     """
@@ -56,12 +71,12 @@ def animate(img_dict, clss, fps, write_path):
                                   interval=fps*1000, blit=True)
     # Save animation:
     # writer = animation.FFMpegWriter(fps=6, metadata=dict(title=clss), bitrate=None, extra_args=['-r', '1', '-pix_fmt', 'yuv420p'])
-    writer = animation.FFMpegWriter(metadata=dict(title=clss), extra_args=['-pix_fmt', 'yuv420p', '-framerate', '1', '-r', '30', '-c', 'libx264', '-f', 'gif'])
+    # writer = animation.FFMpegWriter(metadata=dict(title=clss), extra_args=['-pix_fmt', 'yuv420p', '-framerate', '1', '-r', '30', '-c', 'libx264', '-f', 'gif'])
     # writer = animation.FFMpegWriter(fps=1)
     # writer = Writer(fps=fps, metadata=dict(clss=clss), bitrate=1800)
     # fname = str(clss) + '.mp4'
-    print(write_path)
-    ani.save(filename=write_path, writer=writer)
+    # print(write_path)
+    # ani.save(filename=write_path, writer=writer)
     plt.show()
 
 
@@ -98,6 +113,10 @@ def main(source_dir):
         for img_path in meta['img_paths']:
             image = cv2.imread(img_path)
             images[clss].append(image)
+    """
+    Save labeled images:
+    """
+    save_matplotlib_images(images)
     """
     Animate the loaded images:
     """
