@@ -233,6 +233,13 @@ def save_gradient_frame(gradient, target_class_label, file_name, grayscale=False
     if grayscale:
         gradient = convert_to_grayscale(gradient)
     output_path = os.path.join(output_path, file_name)
+    # Convert NaN's to zeros (see: https://discuss.pytorch.org/t/how-to-set-nan-in-tensor-to-0/3918/6)
+    # grads = gradient.clone()
+    # grads[grads != grads] = 0
+    # num_nonzero = np.count_nonzero(grads.cpu().numpy())
+    # print('type(grads)', type(grads))
+    # print('num_nonzero:', np.count_nonzero(grads.cpu().numpy()))
+    # if num_nonzero > 0:
     # Rescale from Tensor's range [-1, 1] to image range [0, 1]:
     gradient = gradient - gradient.min()
     gradient /= gradient.max()
@@ -283,7 +290,7 @@ def main():
 
     # train_and_visualize(model=model, train_loader=data_loaders['train'])
 
-    num_epochs = 3
+    num_epochs = 6
     # Train and repeatedly capture the gradient for visualization purposes:
     for i, data in enumerate(data_loaders['viz']):
         images, labels = data
