@@ -30,16 +30,26 @@ def animate(img_dict, clss, fps):
     Animate the loaded images:
     '''
     fig = plt.figure()
+    fig.suptitle('class %s' % clss)
+    # plt.title('epoch: %d' % )
     im = plt.imshow(images[0], vmin=0, vmax=255)
-    # function to update figure
+
     def updatefig(j):
+        """
+        updatefig: Updates the fig object with a new image from the images array.
+        :param j: The index of the image in the images array to replace the current one with.
+        :return [im]: TODO: Not sure what this is returning.
+        """
+        print('updatefig(j=%d)' % j)
+        # Change the title to reflect the current epoch:
+        plt.title('epoch: %d' % j)
+        plt.draw()
         # set the data in the axesimage object
         im.set_array(images[j])
         # return the artists set
         return [im]
-    # kick off the animation
-    # interval= Delay between frames in milliseconds
-    ani = animation.FuncAnimation(fig, updatefig, frames=20,
+    # trigger animation:
+    ani = animation.FuncAnimation(fig, updatefig, frames=len(images),
                                   interval=fps*1000, blit=True)
     plt.show()
 
@@ -95,6 +105,4 @@ def main(source_dir):
 
 if __name__ == '__main__':
     results_dir = '../results/PyTorchCNNVisualizations/'
-    # if os.path.isdir(results_dir):
-    #     print('dir exists')
     main(source_dir=results_dir)
