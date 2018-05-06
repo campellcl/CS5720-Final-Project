@@ -67,6 +67,7 @@ input image.
          <td align='center'>Original Image (Preprocessed):</td>
          <td align='center'>Colored Vanilla Backpropagation:</td>
          <td align='center'>Vanilla Backpropagation Saliency: </td>
+         <td align='center'>Feature Detector Evolution:</td>
      </tr>
      <tr>
          <td width='19%' align='center'>Target Class (211) [Vizsla, Hungarian Pointer]:</td>
