@@ -79,7 +79,7 @@ def animate(img_dict, clss, fps, write_path):
     # fname = str(clss) + '.mp4'
     # print(write_path)
     # ani.save(filename=write_path, writer=writer)
-    plt.show()
+    # plt.show()
 
 
 def main(source_dir):
