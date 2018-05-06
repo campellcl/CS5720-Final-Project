@@ -24,6 +24,8 @@ def save_matplotlib_images(images):
         for i, img in enumerate(imgs):
             im = plt.imshow(img, vmin=0, vmax=255)
             plt.title('epoch: %d' % i)
+            plt.xticks([])
+            plt.yticks([])
             plt.draw()
             write_path = '../results/PyTorchCNNVisualizations/' + str(clss) + '/plt'
             fname = write_path + '/vanilla_bp_color_plt_' + str(i) + '.png'
@@ -101,7 +103,15 @@ def main(source_dir):
     img_meta = images_metadata.copy()
     for clss, meta in images_metadata.items():
         filenames = next(os.walk(meta['anim_path']))[2]
-        img_meta[clss]['img_paths'] = [meta['anim_path'] + '/' + fname for fname in filenames]
+        for filename in filenames:
+            file_ext = filename.split('.')[1]
+            if file_ext != 'gif' and file_ext != 'mp4':
+                if 'img_paths' not in img_meta[clss]:
+                    img_meta[clss]['img_paths'] = []
+                else:
+                    img_meta[clss]['img_paths'].append(meta['anim_path'] + '/' + filename)
+        # img_meta[clss]['img_paths'] = [meta['anim_path'] + '/' + fname for fname in filenames if fname.split('.')[1] is not '.gif' or fname
+        #                                .split('.')[1] is not '.mp4']
         # print('filenames:', filenames)
     # print('img_meta', img_meta)
     """
