@@ -73,25 +73,28 @@ input image.
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/211/transformed_original.jpg"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/211/vanilla_bp_color.png"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/211/vanilla_bp_gray.png"></td>
-         <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/gradient-optimization/results/PyTorchCNNVisualizations/211/anim/211.gif"</td>
+         <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/gradient-optimization/results/PyTorchCNNVisualizations/211/anim/211.gif"></td>
      </tr>
      <tr>
          <td width='19%' align='center'>Target Class (56) [King Snake]:</td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/56/transformed_original.jpg"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/56/vanilla_bp_color.png"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/56/vanilla_bp_gray.png"></td>
+         <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/gradient-optimization/results/PyTorchCNNVisualizations/56/anim/56.gif"></td>
      </tr>
      <tr>
          <td width='19%' align='center'>Target Class (243) [Mastiff]:</td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/243/transformed_original.jpg"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/243/vanilla_bp_color.png"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/243/vanilla_bp_gray.png"></td>
+         <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/gradient-optimization/results/PyTorchCNNVisualizations/243/anim/243.gif"></td>
      </tr>
      <tr>
          <td width='19%' align='center'>Target Class (281) [Tabby Cat]:</td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/transformed_original.jpg"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/vanilla_bp_color.png"></td>
          <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/master/results/PyTorchCNNVisualizations/281/vanilla_bp_gray.png"></td>
+         <td width="20.25%" align='center'><img src="https://raw.githubusercontent.com/ccampell/CS5720-Final-Project/gradient-optimization/results/PyTorchCNNVisualizations/281/anim/281.gif"></td>
      </tr>
      </tbody>
  </table>
