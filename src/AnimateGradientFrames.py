@@ -24,8 +24,7 @@ def save_matplotlib_images(images):
         for i, img in enumerate(imgs):
             im = plt.imshow(img, vmin=0, vmax=255)
             plt.title('epoch: %d' % i)
-            plt.xticks([])
-            plt.yticks([])
+            plt.axis('off')
             plt.draw()
             write_path = '../results/PyTorchCNNVisualizations/' + str(clss) + '/plt'
             fname = write_path + '/vanilla_bp_color_plt_' + str(i) + '.png'
