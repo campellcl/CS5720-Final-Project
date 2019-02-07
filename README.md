@@ -1,9 +1,7 @@
 # CS5720-Final-Project
-Final two visualizations for CS 5720 (Scientific Computing with Visualization). 
+Final visualization for CS 5720 (Scientific Computing with Visualization). 
 
-## Visualization One:
-
-## Visualization Two:
+## Visualization:
 
 ### Inspiration:
 
