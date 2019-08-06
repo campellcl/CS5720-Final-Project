@@ -40,16 +40,16 @@ The process to produce this image is roughly as follows:
 1. Instantiate a pre-trained Alexnet classifier.
 2. Feed the input image (column one) through the neural network in a forward pass.
     1. The input image must be one of the thousand different classes comprising [ImageNet1000](http://image-net.org/challenges/LSVRC/2014/browse-synsets).
-3. Perform backpropagation, thereby computing the gradients (change in the error function with respect to the network's
+3. Perform backpropagation, thereby computing the gradients (change in the activation function with respect to the network's
 weights).
 4. Display the gradient of the first layer of the network as an RGB image.
     1. The first layer is chosen because after backpropagation this layer houses the feature detectors most relatable to the original input space.
 
 The colored images can be interpreted as follows:
-* A grey color indicates that the input pixel did not impact the error in a large manner.
-* A bright color indicates that the input pixel did impact the error in a significant way.
+* A grey color indicates that the input pixel did not impact the activation in a large manner.
+* A bright color indicates that the input pixel did impact the activation in a significant way.
 
-If the error is impacted significantly the gradient will appear to have
+If the activation function is impacted significantly the gradient will appear to have
 more extreeme coloration. In this way we can see what parts of the image
 play the most significant role in the networks interpretation of the
 input image.
